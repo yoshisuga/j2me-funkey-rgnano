@@ -41,6 +41,8 @@ enum Settings {
         SettingDef(key: "softKeys", title: "Soft key codes", section: "Controls",
                    choices: [("standard", "Standard (-6 / -7)"), ("motorola", "Motorola (-21 / -22)"), ("moto-old", "Older Motorola (21 / 22)"), ("siemens", "Siemens (-1 / -4)")],
                    def: "standard", perGame: true),
+        SettingDef(key: "dpadStyle", title: "Direction control", section: "Controls",
+                   choices: [("buttons", "D-pad buttons"), ("stick", "Virtual stick")], def: "buttons", perGame: false),
         SettingDef(key: "haptics", title: "Haptic feedback", section: "Controls", choices: onOff, def: "1", perGame: false),
         SettingDef(key: "padOpacity", title: "Pad opacity", section: "Controls",
                    choices: [("100", "100%"), ("80", "80%"), ("60", "60%"), ("40", "40%")], def: "100", perGame: false),

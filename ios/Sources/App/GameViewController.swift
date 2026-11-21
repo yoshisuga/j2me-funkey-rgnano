@@ -83,6 +83,7 @@ final class GameViewController: UIViewController {
                     self?.toggleFullScreen()
                 }])
             },
+            UIAction(title: "Edit Controls", image: UIImage(systemName: "hand.draw")) { [weak self] _ in self?.pad.setEditing(true) },
             UIAction(title: "Runtime Menu", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.runtimeMenu() },
             UIAction(title: "Game Settings", image: UIImage(systemName: "gearshape")) { [weak self] _ in self?.gameSettings() },
             UIAction(title: "Save State", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in self?.saveState() },
@@ -211,6 +212,7 @@ final class GameViewController: UIViewController {
     @objc private func tick() {
         audio.update()
         let overlay = host_overlay_open() != 0
+        pad.refreshStyle()
         if overlay != overlayShown { overlayShown = overlay; pad.setRuntimeMenu(overlay) }
         var w: Int32 = 0, h: Int32 = 0
         var gen: UInt64 = 0
