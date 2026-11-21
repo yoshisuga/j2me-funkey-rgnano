@@ -141,8 +141,11 @@ final class GameViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        let safe = view.bounds.inset(by: view.safeAreaInsets)
-        let landscape = safe.width > safe.height
+        let rawSafe = view.bounds.inset(by: view.safeAreaInsets)
+        let landscape = rawSafe.width > rawSafe.height
+        // Upright, side insets (a hinge bar or similar) are ignored so the picture is centred on the real
+        // screen; in landscape they stay (notch / island).
+        let safe = landscape ? rawSafe : CGRect(x: 0, y: rawSafe.minY, width: view.bounds.width, height: rawSafe.height)
         let aspect = frameSize.width / frameSize.height
         let full = isFullScreen
         let padH: CGFloat = landscape ? 0 : min(safe.height * 0.42, 300)
