@@ -119,7 +119,7 @@ final class StickView: UIView {
     override func touchesCancelled(_ t: Set<UITouch>, with e: UIEvent?) { if let k = tracked, t.contains(k) { release() } }
 }
 
-enum PadGroup: String, CaseIterable { case dpad, actions, keypad, toggle }
+enum PadGroup: String, CaseIterable { case dpad, soft1, soft2, fire, star, pound, keypad, toggle }
 
 /// The on-screen controls. Two layouts, switched by a button: the game pad
 /// (d-pad or stick, OK, soft keys, * #) and a phone keypad (soft keys, OK, 1-9 * 0 #).
@@ -290,12 +290,12 @@ final class PadView: UIView {
             let sw = min(cell * 1.6, 110), fw = cell * 1.3, softH = cell * 0.7, starH = cell * 0.6
             let w = 2 * sw + g, h = softH + g + fw + g + starH
             let def = CGRect(x: b.width - w - 16 - rightInset, y: land ? b.height - h - 8 : (b.height - h) / 2, width: w, height: h)
-            let r = placed(.actions, def)
-            soft1.frame = CGRect(x: r.minX, y: r.minY, width: sw, height: softH)
-            soft2.frame = CGRect(x: r.minX + sw + g, y: r.minY, width: sw, height: softH)
-            fire.frame = CGRect(x: r.maxX - fw, y: r.minY + softH + g, width: fw, height: fw)
-            star.frame = CGRect(x: r.minX, y: r.maxY - starH, width: sw, height: starH)
-            pound.frame = CGRect(x: r.minX + sw + g, y: r.maxY - starH, width: sw, height: starH)
+            // each button is its own movable block; defaults are the old cluster
+            soft1.frame = placed(.soft1, CGRect(x: def.minX, y: def.minY, width: sw, height: softH))
+            soft2.frame = placed(.soft2, CGRect(x: def.minX + sw + g, y: def.minY, width: sw, height: softH))
+            fire.frame = placed(.fire, CGRect(x: def.maxX - fw, y: def.minY + softH + g, width: fw, height: fw))
+            star.frame = placed(.star, CGRect(x: def.minX, y: def.maxY - starH, width: sw, height: starH))
+            pound.frame = placed(.pound, CGRect(x: def.minX + sw + g, y: def.maxY - starH, width: sw, height: starH))
             [star, pound].forEach { $0.setFont(18) }
         } else {
             let kw: CGFloat, kh: CGFloat, softH: CGFloat, w: CGFloat
@@ -360,7 +360,7 @@ final class PadView: UIView {
         switch p.state {
         case .began:
             let pt = p.location(in: self)
-            let order: [PadGroup] = [.toggle, .actions, .keypad, .dpad]
+            let order: [PadGroup] = [.toggle, .fire, .soft1, .soft2, .star, .pound, .keypad, .dpad]
             dragging = order.first { shown.contains($0) && (frames[$0]?.insetBy(dx: -8, dy: -8).contains(pt) ?? false) }
             dragStart = dragging.flatMap { frames[$0] } ?? .zero
         case .changed:
