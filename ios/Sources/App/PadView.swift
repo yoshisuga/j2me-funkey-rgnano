@@ -125,7 +125,7 @@ enum PadGroup: String, CaseIterable { case dpad, soft1, soft2, fire, star, pound
 /// (d-pad or stick, OK, soft keys, * #) and a phone keypad (soft keys, OK, 1-9 * 0 #).
 /// Each block (d-pad, actions, keypad, switch button) can be dragged in edit mode;
 /// positions are kept per orientation.
-final class PadView: UIView {
+final class PadView: UIView, UIGestureRecognizerDelegate {
     private let dirs: [PadButton] = [
         PadButton(.up, title: "▲"), PadButton(.left, title: "◀"),
         PadButton(.right, title: "▶"), PadButton(.down, title: "▼"),
@@ -145,6 +145,16 @@ final class PadView: UIView {
     /// (they can be dragged out into them).
     var leftInset: CGFloat = 0 { didSet { if leftInset != oldValue { setNeedsLayout() } } }
     var rightInset: CGFloat = 0 { didSet { if rightInset != oldValue { setNeedsLayout() } } }
+    /// Where the default layout is computed (the pad's lower part when upright); blocks can be dragged anywhere in the pad.
+    var homeRect: CGRect? { didSet { if homeRect != oldValue { setNeedsLayout() } } }
+    private var home: CGRect { homeRect ?? bounds }
+    /// Multiplied into the opacity setting (the game view lowers it a little in full screen).
+    var opacityFactor: CGFloat = 1 { didSet { applyOpacity() } }
+    /// The controls fade, not the pad itself, so the edit bar stays fully visible.
+    func applyOpacity() {
+        let a = CGFloat(Int(Settings.global("padOpacity")) ?? 100) / 100 * opacityFactor
+        (dirs + [stick, fire, soft1, soft2, star, pound, toggle] + numbers).forEach { $0.alpha = a }
+    }
     var onEditEnd: (() -> Void)?
     private(set) var editing = false
 
@@ -186,6 +196,7 @@ final class PadView: UIView {
         toggle.addAction(UIAction { [weak self] _ in self?.keypad.toggle() }, for: .touchUpInside)
         addSubview(toggle)
         applyMode()
+        applyOpacity()
 
         func barButton(_ title: String, _ handler: @escaping () -> Void) -> UIButton {
             var c = UIButton.Configuration.filled()
@@ -195,13 +206,29 @@ final class PadView: UIView {
             b.addAction(UIAction { _ in handler() }, for: .touchUpInside)
             return b
         }
-        editBar.axis = .horizontal; editBar.spacing = 10
+        editBar.axis = .horizontal; editBar.spacing = 10; editBar.alignment = .center
         editBar.addArrangedSubview(barButton("Reset") { [weak self] in self?.resetPositions() })
+        let slider = UISlider()
+        slider.minimumValue = 0.2; slider.maximumValue = 1
+        slider.value = Float(Int(Settings.global("padOpacity")) ?? 100) / 100
+        slider.tintColor = .systemYellow
+        slider.widthAnchor.constraint(equalToConstant: 150).isActive = true
+        slider.addAction(UIAction { [weak self, weak slider] _ in
+            guard let v = slider?.value else { return }
+            Settings.setGlobal("padOpacity", String(Int((v * 100).rounded())))
+            self?.applyOpacity()
+        }, for: .valueChanged)
+        let sun = UIImageView(image: UIImage(systemName: "circle.lefthalf.filled"))
+        sun.tintColor = .systemYellow
+        editBar.addArrangedSubview(sun)
+        editBar.addArrangedSubview(slider)
         editBar.addArrangedSubview(barButton("Done") { [weak self] in self?.setEditing(false); self?.onEditEnd?() })
         editBar.isHidden = true
         addSubview(editBar)
-        addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(pan(_:))))
-        gestureRecognizers?.first?.isEnabled = false
+        let panner = UIPanGestureRecognizer(target: self, action: #selector(pan(_:)))
+        panner.delegate = self
+        panner.isEnabled = false
+        addGestureRecognizer(panner)
     }
     required init?(coder: NSCoder) { fatalError() }
 
@@ -242,6 +269,7 @@ final class PadView: UIView {
 
     /// The block's default rectangle moved by the user's offset and kept inside the pad.
     private func placed(_ g: PadGroup, _ def: CGRect) -> CGRect {
+        let def = def.offsetBy(dx: home.minX, dy: home.minY)
         defaults[g] = def
         let o = offset(g)
         var r = def.offsetBy(dx: o.x * bounds.width, dy: o.y * bounds.height)
@@ -254,8 +282,9 @@ final class PadView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let b = bounds
-        let land = landscape
+        let b = CGRect(origin: .zero, size: home.size)
+        let land = b.width > b.height * 1.4
+        var dpadDefY: CGFloat = 0
         let g: CGFloat = 8
         let tw: CGFloat = 130, th: CGFloat = 34
         let useStick = Settings.global("dpadStyle") == "stick"
@@ -269,6 +298,7 @@ final class PadView: UIView {
         var dpadRect = CGRect.zero
         if showDpad {
             let dy = land ? b.height - D - 8 : max(4, (b.height - D) / 2)
+            dpadDefY = dy
             dpadRect = placed(.dpad, CGRect(x: 16 + leftInset, y: dy, width: D, height: D))
             if useStick {
                 stick.frame = dpadRect
@@ -330,7 +360,7 @@ final class PadView: UIView {
 
         // switch button: under the d-pad on a phone held upright, above it in landscape
         let tdef = land
-            ? CGRect(x: 16 + leftInset + (D - tw) / 2, y: max(4, (showDpad ? dpadRect.minY : b.height) - th - 6), width: tw, height: th)
+            ? CGRect(x: 16 + leftInset + (D - tw) / 2, y: max(4, (showDpad ? dpadDefY : b.height) - th - 6), width: tw, height: th)
             : CGRect(x: b.midX - tw / 2, y: b.height - th - 4, width: tw, height: th)
         toggle.frame = placed(.toggle, tdef)
 
@@ -340,12 +370,17 @@ final class PadView: UIView {
             sendSubviewToBack(o)
         }
         let es = editBar.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-        editBar.frame = CGRect(x: b.midX - es.width / 2, y: 6, width: es.width, height: es.height)
+        editBar.frame = CGRect(x: bounds.midX - es.width / 2, y: 52, width: es.width, height: es.height)
         bringSubviewToFront(editBar)
         fire.layoutIfNeeded()
     }
 
     // MARK: editing
+
+    /// The edit bar's slider and buttons keep their own touches.
+    func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        !(touch.view?.isDescendant(of: editBar) ?? false)
+    }
 
     func setEditing(_ on: Bool) {
         editing = on
@@ -377,7 +412,7 @@ final class PadView: UIView {
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let v = super.hitTest(point, with: event)
-        if editing { return v is UIButton && !(v is PadButton) ? v : (bounds.contains(point) ? self : nil) }
+        if editing { return (v?.isDescendant(of: editBar) == true && v !== editBar) ? v : (bounds.contains(point) ? self : nil) }
         return v === self ? nil : v
     }
 }

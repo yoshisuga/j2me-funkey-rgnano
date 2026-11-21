@@ -53,7 +53,6 @@ final class GameViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-        pad.alpha = CGFloat(Int(Settings.global("padOpacity")) ?? 100) / 100
         screenHost.backgroundColor = .black
         screenHost.clipsToBounds = true
         screenLayer.magnificationFilter = .nearest
@@ -189,9 +188,11 @@ final class GameViewController: UIViewController {
         // the pad spans the full width so blocks can be dragged into the side safe areas
         pad.leftInset = safe.minX
         pad.rightInset = view.bounds.width - safe.maxX
-        pad.frame = landscape ? CGRect(x: 0, y: safe.minY, width: view.bounds.width, height: safe.height)
-                              : CGRect(x: 0, y: safe.maxY - padH, width: view.bounds.width, height: padH)
-        pad.alpha = CGFloat(Int(Settings.global("padOpacity")) ?? 100) / 100 * (full ? 0.7 : 1)
+        // upright the pad covers the whole screen (touches pass through empty parts) so controls can be dragged anywhere;
+        // its default layout sits in the lower part
+        pad.homeRect = landscape ? nil : CGRect(x: 0, y: safe.height - padH, width: view.bounds.width, height: padH)
+        pad.frame = CGRect(x: 0, y: safe.minY, width: view.bounds.width, height: safe.height)
+        pad.opacityFactor = full ? 0.7 : 1
         view.bringSubviewToFront(pad)
         view.bringSubviewToFront(menuButton)
 
