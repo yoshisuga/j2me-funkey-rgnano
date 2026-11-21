@@ -55,6 +55,7 @@ final class GameViewController: UIViewController {
         view.backgroundColor = .black
         pad.alpha = CGFloat(Int(Settings.global("padOpacity")) ?? 100) / 100
         screenHost.backgroundColor = .black
+        screenHost.clipsToBounds = true
         screenLayer.magnificationFilter = .nearest
         screenLayer.minificationFilter = .linear
         screenHost.layer.addSublayer(screenLayer)
@@ -75,6 +76,13 @@ final class GameViewController: UIViewController {
         menuButton.accessibilityLabel = "Game menu"
         menuButton.showsMenuAsPrimaryAction = true
         menuButton.menu = UIMenu(children: [
+            UIDeferredMenuElement.uncached { [weak self] done in
+                let on = self?.isFullScreen ?? false
+                done([UIAction(title: on ? "Exit Full Screen" : "Full Screen",
+                               image: UIImage(systemName: on ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")) { _ in
+                    self?.toggleFullScreen()
+                }])
+            },
             UIAction(title: "Runtime Menu", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.runtimeMenu() },
             UIAction(title: "Game Settings", image: UIImage(systemName: "gearshape")) { [weak self] _ in self?.gameSettings() },
             UIAction(title: "Save State", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in self?.saveState() },
@@ -88,6 +96,14 @@ final class GameViewController: UIViewController {
             },
         ])
         view.addSubview(menuButton)
+    }
+
+    private var isFullScreen: Bool { Settings.effective(game.slug, "fullScreen") == "1" }
+
+    private func toggleFullScreen() {
+        Settings.setOverride(game.slug, "fullScreen", isFullScreen ? "0" : "1")
+        view.setNeedsLayout()
+        UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
     }
 
     /// The runtime's own menu (display, sound, keys), opened with its menu key.
@@ -127,17 +143,47 @@ final class GameViewController: UIViewController {
         let safe = view.bounds.inset(by: view.safeAreaInsets)
         let landscape = safe.width > safe.height
         let aspect = frameSize.width / frameSize.height
+        let full = isFullScreen
         let padH: CGFloat = landscape ? 0 : min(safe.height * 0.42, 300)
-        let barH: CGFloat = landscape ? 0 : 44
-        let area = CGRect(x: safe.minX, y: safe.minY + barH, width: safe.width, height: safe.height - padH - barH)
-        menuButton.frame = CGRect(x: safe.maxX - 48, y: safe.minY + (landscape ? 4 : 0), width: 44, height: 44)
-        titleLabel.frame = CGRect(x: safe.minX + 56, y: safe.minY, width: safe.width - 112, height: 44)
-        titleLabel.isHidden = landscape
-        var w = area.width, h = w / aspect
-        if h > area.height { h = area.height; w = h * aspect }
-        screenHost.frame = CGRect(x: area.midX - w / 2, y: area.minY + (landscape ? (area.height - h) / 2 : 0), width: w, height: h)
+        var w: CGFloat, h: CGFloat
+
+        if full {
+            // the game fills the screen (its shape kept); the controls lie over it
+            let mode = Settings.effective(game.slug, "scaleMode")
+            if mode == "fill" || mode == "crop" {
+                // the game is drawn in its own shape, large enough to cover the screen, and the picture
+                // fills the whole screen: stretched ("fill") or with its edges cropped ("crop")
+                let cover = max(view.bounds.width / frameSize.width, view.bounds.height / frameSize.height)
+                w = frameSize.width * cover; h = frameSize.height * cover
+                screenHost.frame = view.bounds
+                screenLayer.contentsGravity = mode == "fill" ? .resize : .resizeAspectFill
+            } else {
+                let area = landscape ? view.bounds
+                                     : CGRect(x: 0, y: safe.minY, width: view.bounds.width, height: view.bounds.height - safe.minY)
+                w = area.width; h = w / aspect
+                if h > area.height { h = area.height; w = h * aspect }
+                screenHost.frame = CGRect(x: area.midX - w / 2, y: landscape ? area.midY - h / 2 : area.minY, width: w, height: h)
+                screenLayer.contentsGravity = .resize
+            }
+            titleLabel.isHidden = true
+            menuButton.frame = CGRect(x: safe.maxX - 48, y: safe.minY + 4, width: 40, height: 40)
+            menuButton.backgroundColor = UIColor(white: 0, alpha: 0.35)
+            menuButton.layer.cornerRadius = 20
+        } else {
+            let barH: CGFloat = landscape ? 0 : 44
+            let area = CGRect(x: safe.minX, y: safe.minY + barH, width: safe.width, height: safe.height - padH - barH)
+            w = area.width; h = w / aspect
+            if h > area.height { h = area.height; w = h * aspect }
+            screenHost.frame = CGRect(x: area.midX - w / 2, y: area.minY + (landscape ? (area.height - h) / 2 : 0), width: w, height: h)
+            screenLayer.contentsGravity = .resize
+            menuButton.frame = CGRect(x: safe.maxX - 48, y: safe.minY + (landscape ? 4 : 0), width: 44, height: 44)
+            menuButton.backgroundColor = .clear
+            titleLabel.frame = CGRect(x: safe.minX + 56, y: safe.minY, width: safe.width - 112, height: 44)
+            titleLabel.isHidden = landscape
+        }
         screenLayer.frame = screenHost.bounds
         pad.frame = landscape ? safe : CGRect(x: safe.minX, y: safe.maxY - padH, width: safe.width, height: padH)
+        pad.alpha = CGFloat(Int(Settings.global("padOpacity")) ?? 100) / 100 * (full ? 0.7 : 1)
         view.bringSubviewToFront(pad)
         view.bringSubviewToFront(menuButton)
 
@@ -160,8 +206,12 @@ final class GameViewController: UIViewController {
         }
     }
 
+    private var overlayShown = false
+
     @objc private func tick() {
         audio.update()
+        let overlay = host_overlay_open() != 0
+        if overlay != overlayShown { overlayShown = overlay; pad.setRuntimeMenu(overlay) }
         var w: Int32 = 0, h: Int32 = 0
         var gen: UInt64 = 0
         if let p = host_frame_acquire(&w, &h, &gen) {

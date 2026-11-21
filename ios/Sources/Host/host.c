@@ -187,7 +187,19 @@ static double wall_ms(void) { struct timeval t; gettimeofday(&t, NULL); return t
 
 f64 w2c_env_emscripten_get_now(ENV *e) { (void) e; return vnow(); }
 u32 w2c_env_SDL_GetTicks(ENV *e) { (void) e; return (u32) vnow(); }
-void w2c_env_SDL_Delay(ENV *e, u32 ms) { (void) e; usleep(ms * 1000u); }
+/* The runtime menu is modal: its loop polls events and calls SDL_Delay(16) over and over, while the
+ * game's own loop always goes through the idle imports (wait/yield). Several Delays in a row with none of those
+ * in between mean the menu (or the fatal notice) is on screen. */
+static volatile int g_delay_run;
+static volatile double g_last_delay;
+void w2c_env_SDL_Delay(ENV *e, u32 ms) {
+    (void) e;
+    g_delay_run++;
+    g_last_delay = now_ms();
+    usleep(ms * 1000u);
+}
+
+int host_overlay_open(void) { return g_delay_run >= 3 && now_ms() - g_last_delay < 200; }
 void w2c_env_emscripten_sleep(ENV *e, u32 ms) { (void) e; usleep(ms * 1000u); }
 
 u32 w2c_env_gettimeofday(ENV *e, u32 tv, u32 tz) {
@@ -203,6 +215,7 @@ u32 w2c_env_gettimeofday(ENV *e, u32 tv, u32 tz) {
  * here (nothing more to do), 2 = a save started unwinding (return at once). */
 static int async_prologue(void) {
     if (g_kill) vm_exit(0);
+    g_delay_run = 0;
     if (w2c_midp_asyncify_get_state(&M) == 2) {
         w2c_midp_asyncify_stop_rewind(&M);
         return 1;

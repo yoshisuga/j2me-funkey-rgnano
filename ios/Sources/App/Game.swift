@@ -23,7 +23,9 @@ struct Game {
     var lcd: (Int, Int) { iappli?.area ?? Settings.screenSize(slug) }
     var isIAppli: Bool { iappli != nil }
 
-    var slug: String {
+    var slug: String { Game.slug(forJar: jar) }
+
+    static func slug(forJar jar: URL) -> String {
         jar.deletingPathExtension().lastPathComponent.map { $0.isLetter || $0.isNumber ? String($0) : "_" }.joined()
     }
 

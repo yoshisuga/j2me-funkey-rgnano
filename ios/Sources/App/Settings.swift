@@ -28,6 +28,7 @@ enum Settings {
         SettingDef(key: "fps", title: "Frame rate limit", section: "Display",
                    choices: [("", "Runtime default"), ("off", "No limit"), ("20", "20"), ("25", "25"), ("30", "30"), ("50", "50"), ("60", "60")],
                    def: "", perGame: true, env: "PHONEME_FPS_LIMIT", cfgKey: "FPS_LIMIT"),
+        SettingDef(key: "fullScreen", title: "Full screen (controls over the game)", section: "Display", choices: onOff, def: "0", perGame: true),
         SettingDef(key: "showFPS", title: "Show FPS counter", section: "Display", choices: onOff, def: "0", perGame: true,
                    env: "PHONEME_SHOW_FPS", onlyWhenOn: true),
         // Screen (plain jars only)

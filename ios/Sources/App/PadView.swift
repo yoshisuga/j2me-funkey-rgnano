@@ -9,6 +9,7 @@ final class PadButton: UIControl {
     init(_ action: PadAction, title: String, round: Bool = false, fontSize: CGFloat = 18) {
         self.action = action
         self.round = round
+        self.normalTitle = title
         super.init(frame: .zero)
         isMultipleTouchEnabled = true
         backgroundColor = UIColor(white: 0.22, alpha: 1)
@@ -33,12 +34,26 @@ final class PadButton: UIControl {
         layer.cornerRadius = round ? min(bounds.width, bounds.height) / 2 : 10
     }
 
+    /// While the runtime menu is open a button can show another name and send another key.
+    private let normalTitle: String
+    private var overrideAction: PadAction?
+    private var tint: UIColor?
+    private var pressedSym: Int32 = 0
+
+    func setOverride(title: String?, action: PadAction?, tint: UIColor? = nil) {
+        label.text = title ?? normalTitle
+        overrideAction = action
+        self.tint = tint
+        backgroundColor = tint ?? UIColor(white: 0.22, alpha: 1)
+    }
+
     private var down = false
     private func set(_ d: Bool) {
         guard d != down else { return }
         down = d
-        backgroundColor = UIColor(white: d ? 0.5 : 0.22, alpha: 1)
-        host_key(Int32(action.sym), d ? 1 : 0)
+        backgroundColor = d ? UIColor(white: 0.5, alpha: 1) : (tint ?? UIColor(white: 0.22, alpha: 1))
+        if d { pressedSym = Int32((overrideAction ?? action).sym) }
+        host_key(pressedSym, d ? 1 : 0)
         if d && Settings.global("haptics") == "1" { UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6) }
     }
     override func touchesBegan(_ t: Set<UITouch>, with e: UIEvent?) { set(true) }
@@ -61,6 +76,14 @@ final class PadView: UIView {
     private let pound = PadButton(.pound, title: "#")
     private let numbers: [PadButton]
     private let toggle = UIButton(type: .system)
+
+    /// The runtime menu names its keys A / B / Power: OK is A, Soft R is B, Soft L is Power (the menu key).
+    func setRuntimeMenu(_ on: Bool) {
+        let power = UIColor(red: 0.55, green: 0.2, blue: 0.2, alpha: 1)
+        fire.setOverride(title: on ? "A" : nil, action: nil)
+        soft2.setOverride(title: on ? "B" : nil, action: nil)
+        soft1.setOverride(title: on ? "Power" : nil, action: on ? .menu : nil, tint: on ? power : nil)
+    }
 
     private(set) var keypad = false { didSet { applyMode(); setNeedsLayout() } }
 

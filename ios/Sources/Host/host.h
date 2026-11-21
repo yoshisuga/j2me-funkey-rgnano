@@ -40,6 +40,9 @@ void host_quit(void);
 int host_audio_active(int *rate);
 int host_audio_read(int16_t *dst, int frames);
 
+/* 1 while the runtime menu (or its fatal notice) is on screen. */
+int host_overlay_open(void);
+
 /* 1 while the VM thread runs. */
 int host_running(void);
 

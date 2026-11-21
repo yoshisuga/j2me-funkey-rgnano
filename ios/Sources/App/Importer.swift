@@ -52,6 +52,7 @@ enum Importer {
                 try? fm.removeItem(at: dest)
                 try? fm.createDirectory(at: dest, withIntermediateDirectories: true)
                 for it in group { copy(it.url, to: dest.appendingPathComponent(it.url.lastPathComponent), &result) }
+                Library.markAdded(slug: Game.slug(forJar: dest.appendingPathComponent(first.url.lastPathComponent)))
                 result.games += 1
             } else {
                 for jar in jars {
@@ -59,6 +60,7 @@ enum Importer {
                     for it in group where it.url.deletingPathExtension().lastPathComponent == base {
                         copy(it.url, to: dir.appendingPathComponent(it.url.lastPathComponent), &result)
                     }
+                    Library.markAdded(slug: Game.slug(forJar: dir.appendingPathComponent(jar.url.lastPathComponent)))
                     result.games += 1
                 }
             }
@@ -91,6 +93,7 @@ enum Importer {
                 try? fm.removeItem(at: f)
             }
         }
+        Library.forget(slug: game.slug)
         Launcher.shared.deleteSaves(slug: game.slug)
     }
 }

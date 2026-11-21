@@ -4,7 +4,11 @@ import UIKit
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        true
+        // a crash from an exception says why on stderr (simctl launch --console / Xcode console)
+        NSSetUncaughtExceptionHandler { e in
+            fputs("uncaught exception: \(e.name.rawValue): \(e.reason ?? "")\n", stderr)
+        }
+        return true
     }
 
     func application(_ application: UIApplication, configurationForConnecting session: UISceneSession,
@@ -27,7 +31,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let ws = scene as? UIWindowScene else { return }
         let w = UIWindow(windowScene: ws)
-        list = GameListViewController(style: .insetGrouped)
+        list = GameListViewController()
         w.rootViewController = UINavigationController(rootViewController: list!)
         w.makeKeyAndVisible()
         window = w
