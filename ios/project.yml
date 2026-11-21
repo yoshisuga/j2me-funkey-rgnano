@@ -1,0 +1,75 @@
+name: J2MEfun
+options:
+  bundleIdPrefix: org.j2me
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    ONLY_ACTIVE_ARCH: YES
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+targets:
+  J2MEfun:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/App
+      - path: Sources/Host
+        compilerFlags: ["-O2"]
+      - path: Generated
+        excludes: ["web/**", "*.h", "*.inc", "wasm-rt-exceptions-impl.c"]
+        compilerFlags: ["-O1", "-w"]
+      - path: Resources/midp
+        type: folder
+      - path: Resources/MotherLoad.jar
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Host/Bridging.h
+        HEADER_SEARCH_PATHS: ["$(SRCROOT)/Generated", "$(SRCROOT)/Sources/Host"]
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - "WASM_RT_USE_MMAP=0"
+          - "WASM_RT_STACK_DEPTH_COUNT=1"
+          - "WASM_RT_MAX_CALL_STACK_DEPTH=200000"
+          - "$(inherited)"
+        OTHER_LDFLAGS: ["-lcompression"]
+        PRODUCT_BUNDLE_IDENTIFIER: org.j2me.funkey
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_CFBundleDisplayName: J2ME
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_DEBUG_DYLIB: NO
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+    info:
+      path: Sources/App/Info.plist
+      properties:
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        CFBundleDisplayName: J2ME
+        UILaunchScreen: {}
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Java game file
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [org.j2me.jar, org.j2me.jam, org.j2me.sp]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: org.j2me.jar
+            UTTypeDescription: Java archive
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification: {public.filename-extension: [jar]}
+          - UTTypeIdentifier: org.j2me.jam
+            UTTypeDescription: i-appli descriptor
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification: {public.filename-extension: [jam]}
+          - UTTypeIdentifier: org.j2me.sp
+            UTTypeDescription: i-appli scratchpad
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification: {public.filename-extension: [sp]}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]

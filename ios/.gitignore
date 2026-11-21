@@ -1,0 +1,6 @@
+Generated/
+Resources/midp/
+Resources/MotherLoad.jar
+*.xcodeproj
+build/
+build-device/
