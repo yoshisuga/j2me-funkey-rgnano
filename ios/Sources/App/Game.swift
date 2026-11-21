@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 /// A game on disk: a MIDP jar, or an i-appli (DoJa) jar with its .jam and optional .sp scratchpad.
 struct Game {
@@ -67,5 +67,62 @@ struct Game {
                         spSize: ascii(v["SPsize"]), area: area, platform: platform, sp: spURL)
         return Game(jar: jar, name: v["AppName"].flatMap { $0.isEmpty ? nil : $0 } ?? base,
                     midletClass: nil, manifest: nil, iappli: ia)
+    }
+}
+
+// MARK: icon
+
+extension Game {
+    private static let iconCache = NSCache<NSString, UIImage>()
+
+    /// The game's icon: a MIDlet's MIDlet-Icon (or the icon field of MIDlet-1); otherwise an
+    /// icon image inside the jar (i-appli games carry files such as icon48.gif).
+    func loadIcon() -> UIImage? {
+        let key = jar.path as NSString
+        if let hit = Game.iconCache.object(forKey: key) { return hit }
+        guard let data = try? Data(contentsOf: jar, options: .mappedIfSafe) else { return nil }
+        let names = JarInfo.entryNames(data)
+        func entry(_ name: String) -> String? {
+            let n = name.hasPrefix("/") ? String(name.dropFirst()) : name
+            return names.first { $0 == n } ?? names.first { $0.caseInsensitiveCompare(n) == .orderedSame }
+        }
+        var candidate: String?
+        if let mf = manifest {
+            var props: [String: String] = [:]
+            for line in mf.components(separatedBy: CharacterSet(charactersIn: "\r\n")) {
+                guard let i = line.firstIndex(of: ":") else { continue }
+                props[String(line[..<i])] = line[line.index(after: i)...].trimmingCharacters(in: .whitespaces)
+            }
+            let fromM1 = props["MIDlet-1"].flatMap { v -> String? in
+                let p = v.split(separator: ",", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+                return p.count > 1 && !p[1].isEmpty ? p[1] : nil
+            }
+            candidate = [props["MIDlet-Icon"], fromM1].compactMap { $0 }.compactMap(entry).first
+        }
+        if candidate == nil {
+            let images = names.filter { ["png", "gif", "jpg", "jpeg"].contains(($0 as NSString).pathExtension.lowercased()) }
+            let icons = images.filter { ($0 as NSString).lastPathComponent.lowercased().contains("icon") }
+            // prefer a small one (icon48 over icon96), then plain "icon"
+            candidate = icons.first { $0.lowercased().contains("48") } ?? icons.first { $0.lowercased().contains("32") }
+                ?? icons.first { ($0 as NSString).deletingPathExtension.lowercased().hasSuffix("icon") } ?? icons.first
+        }
+        guard let c = candidate, let bytes = JarInfo.readEntry(data, named: c), let img = UIImage(data: bytes) else { return nil }
+        let out = Game.crisp(img, side: 96)
+        Game.iconCache.setObject(out, forKey: key)
+        return out
+    }
+
+    /// Pixel-art icons scaled up without blurring.
+    private static func crisp(_ img: UIImage, side: CGFloat) -> UIImage {
+        let size = img.size
+        guard size.width > 0, size.height > 0 else { return img }
+        let k = min(side / size.width, side / size.height)
+        let target = CGSize(width: (size.width * (k >= 1 ? CGFloat(Int(k)) : k)).rounded(), height: (size.height * (k >= 1 ? CGFloat(Int(k)) : k)).rounded())
+        let fmt = UIGraphicsImageRendererFormat.default()
+        fmt.scale = 1
+        return UIGraphicsImageRenderer(size: target, format: fmt).image { ctx in
+            ctx.cgContext.interpolationQuality = k >= 1 ? .none : .high
+            img.draw(in: CGRect(origin: .zero, size: target))
+        }
     }
 }

@@ -30,6 +30,26 @@ struct JarInfo {
     private static func le16(_ d: Data, _ o: Int) -> Int { Int(d[d.startIndex + o]) | Int(d[d.startIndex + o + 1]) << 8 }
     private static func le32(_ d: Data, _ o: Int) -> Int { le16(d, o) | le16(d, o + 2) << 16 }
 
+    /// Names of all entries of a jar (zip central directory).
+    static func entryNames(_ d: Data) -> [String] {
+        var eocd = -1
+        var i = d.count - 22
+        while i >= max(0, d.count - 66000) {
+            if le32(d, i) == 0x06054b50 { eocd = i; break }
+            i -= 1
+        }
+        guard eocd >= 0 else { return [] }
+        var names: [String] = []
+        var p = le32(d, eocd + 16)
+        for _ in 0..<le16(d, eocd + 10) {
+            guard p + 46 <= d.count, le32(d, p) == 0x02014b50 else { break }
+            let nlen = le16(d, p + 28), xlen = le16(d, p + 30), clen = le16(d, p + 32)
+            names.append(String(decoding: d[(d.startIndex + p + 46)..<(d.startIndex + p + 46 + nlen)], as: UTF8.self))
+            p += 46 + nlen + xlen + clen
+        }
+        return names
+    }
+
     static func readEntry(_ d: Data, named wanted: String) -> Data? {
         // end of central directory record
         var eocd = -1

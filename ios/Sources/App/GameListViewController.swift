@@ -128,6 +128,12 @@ final class GameListViewController: UITableViewController, UIDocumentPickerDeleg
         let g = games[ip.row]
         cfg.text = g.name
         cfg.secondaryText = g.jar.lastPathComponent + (g.isIAppli ? "  ·  i-appli" : "")
+        cfg.image = g.loadIcon() ?? UIImage(systemName: "gamecontroller.fill")
+        cfg.imageProperties.maximumSize = CGSize(width: 44, height: 44)
+        cfg.imageProperties.reservedLayoutSize = CGSize(width: 44, height: 44)
+        cfg.imageProperties.cornerRadius = 9
+        cfg.imageProperties.tintColor = .tertiaryLabel
+        cfg.imageToTextPadding = 14
         c.contentConfiguration = cfg
         return c
     }
