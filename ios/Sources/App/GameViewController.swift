@@ -183,7 +183,11 @@ final class GameViewController: UIViewController {
             titleLabel.isHidden = landscape
         }
         screenLayer.frame = screenHost.bounds
-        pad.frame = landscape ? safe : CGRect(x: safe.minX, y: safe.maxY - padH, width: safe.width, height: padH)
+        // the pad spans the full width so blocks can be dragged into the side safe areas
+        pad.leftInset = safe.minX
+        pad.rightInset = view.bounds.width - safe.maxX
+        pad.frame = landscape ? CGRect(x: 0, y: safe.minY, width: view.bounds.width, height: safe.height)
+                              : CGRect(x: 0, y: safe.maxY - padH, width: view.bounds.width, height: padH)
         pad.alpha = CGFloat(Int(Settings.global("padOpacity")) ?? 100) / 100 * (full ? 0.7 : 1)
         view.bringSubviewToFront(pad)
         view.bringSubviewToFront(menuButton)

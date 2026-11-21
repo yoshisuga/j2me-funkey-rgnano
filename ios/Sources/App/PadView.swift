@@ -141,6 +141,10 @@ final class PadView: UIView {
     private var outlines: [PadGroup: UIView] = [:]
     private let editBar = UIStackView()
 
+    /// Side safe-area insets: the pad spans the whole width, but blocks start inside these margins
+    /// (they can be dragged out into them).
+    var leftInset: CGFloat = 0 { didSet { if leftInset != oldValue { setNeedsLayout() } } }
+    var rightInset: CGFloat = 0 { didSet { if rightInset != oldValue { setNeedsLayout() } } }
     var onEditEnd: (() -> Void)?
     private(set) var editing = false
 
@@ -265,7 +269,7 @@ final class PadView: UIView {
         var dpadRect = CGRect.zero
         if showDpad {
             let dy = land ? b.height - D - 8 : max(4, (b.height - D) / 2)
-            dpadRect = placed(.dpad, CGRect(x: 16, y: dy, width: D, height: D))
+            dpadRect = placed(.dpad, CGRect(x: 16 + leftInset, y: dy, width: D, height: D))
             if useStick {
                 stick.frame = dpadRect
                 dirs.forEach { $0.isHidden = true }
@@ -285,7 +289,7 @@ final class PadView: UIView {
         if !keypad {
             let sw = min(cell * 1.6, 110), fw = cell * 1.3, softH = cell * 0.7, starH = cell * 0.6
             let w = 2 * sw + g, h = softH + g + fw + g + starH
-            let def = CGRect(x: b.width - w - 16, y: land ? b.height - h - 8 : (b.height - h) / 2, width: w, height: h)
+            let def = CGRect(x: b.width - w - 16 - rightInset, y: land ? b.height - h - 8 : (b.height - h) / 2, width: w, height: h)
             let r = placed(.actions, def)
             soft1.frame = CGRect(x: r.minX, y: r.minY, width: sw, height: softH)
             soft2.frame = CGRect(x: r.minX + sw + g, y: r.minY, width: sw, height: softH)
@@ -301,15 +305,15 @@ final class PadView: UIView {
                 softH = kh * 0.8
                 w = 3 * kw + 2 * g
             } else {
-                w = b.width - 24
+                w = b.width - 24 - leftInset - rightInset
                 kw = (w - 2 * g) / 3
                 let avail = b.height - th - 18
                 softH = min(44, avail * 0.14)
                 kh = (avail - softH - g - 3 * g) / 4
             }
             let h = softH + g + 4 * kh + 3 * g
-            let def = land ? CGRect(x: b.width - w - 16, y: b.height - h - 8, width: w, height: h)
-                           : CGRect(x: 12, y: 4, width: w, height: h)
+            let def = land ? CGRect(x: b.width - w - 16 - rightInset, y: b.height - h - 8, width: w, height: h)
+                           : CGRect(x: 12 + leftInset, y: 4, width: w, height: h)
             let r = placed(.keypad, def)
             soft1.frame = CGRect(x: r.minX, y: r.minY, width: kw, height: softH)
             fire.frame = CGRect(x: r.minX + kw + g, y: r.minY, width: kw, height: softH)
@@ -326,7 +330,7 @@ final class PadView: UIView {
 
         // switch button: under the d-pad on a phone held upright, above it in landscape
         let tdef = land
-            ? CGRect(x: 16 + (D - tw) / 2, y: max(4, (showDpad ? dpadRect.minY : b.height) - th - 6), width: tw, height: th)
+            ? CGRect(x: 16 + leftInset + (D - tw) / 2, y: max(4, (showDpad ? dpadRect.minY : b.height) - th - 6), width: tw, height: th)
             : CGRect(x: b.midX - tw / 2, y: b.height - th - 4, width: tw, height: th)
         toggle.frame = placed(.toggle, tdef)
 
