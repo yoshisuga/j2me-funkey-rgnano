@@ -28,7 +28,7 @@ public class VoidWave extends MIDlet implements CommandListener {
         // sin(2*pi*i/32) * 100
         private static final int[] SIN = {0, 20, 38, 56, 71, 83, 92, 98, 100, 98, 92, 83, 71, 56, 38, 20,
                                           0, -20, -38, -56, -71, -83, -92, -98, -100, -98, -92, -83, -71, -56, -38, -20};
-        private static final int ME = 16, MB = 12, MEB = 14, MX = 8;
+        private static final int ME = 16, MB = 12, MEB = 24, MX = 8;
 
         // enemies
         private final int[] ex = new int[ME], ey = new int[ME], ehp = new int[ME], eage = new int[ME];
@@ -37,12 +37,14 @@ public class VoidWave extends MIDlet implements CommandListener {
         // bullets
         private final int[] bx = new int[MB], by = new int[MB];
         private final boolean[] ba = new boolean[MB];
-        private final int[] ebx = new int[MEB], eby = new int[MEB];
+        private final int[] ebx = new int[MEB], eby = new int[MEB], ebvx = new int[MEB];
         private final boolean[] eba = new boolean[MEB];
         // explosions
         private final int[] xx = new int[MX], xy = new int[MX], xa = new int[MX];
 
-        private int px, move, score, best, lives, wave, pattern, count, tick, fire, hurt, banner, kills, bonus;
+        private int px, move, score, best, lives, wave, pattern, count, tick, fire, hurt, banner, kills, bonus, bossN, mx, my, mhp, mmax, mt, mflash, flashT;
+        private boolean boss;
+        private String bonusText = "";
         private boolean over, running, title = true;
         private long seed = 777;
 
@@ -59,7 +61,7 @@ public class VoidWave extends MIDlet implements CommandListener {
 
         private void reset() {
             int w = getWidth() > 0 ? getWidth() : 240;
-            px = w / 2; move = 0; score = 0; bonus = 0; lives = 3; wave = 0; tick = 0; fire = 0; hurt = 0;
+            px = w / 2; move = 0; score = 0; bonus = 0; boss = false; bonusText = ""; lives = 3; wave = 0; tick = 0; fire = 0; hurt = 0;
             over = false;
             for (int i = 0; i < ME; i++) ealive[i] = false;
             for (int i = 0; i < MB; i++) ba[i] = false;
@@ -167,7 +169,7 @@ public class VoidWave extends MIDlet implements CommandListener {
             // enemies
             int alive = 0;
             int firing = 160 - (wave > 10 ? 10 : wave) * 9;
-            for (int k = 0; k < count; k++) {
+            for (int k = 0; k < count && !boss; k++) {
                 if (!ealive[k]) continue;
                 alive++;
                 if (tick < est[k]) { ex[k] = -50; ey[k] = -50; continue; }
@@ -176,7 +178,7 @@ public class VoidWave extends MIDlet implements CommandListener {
                 if (ey[k] > h + 16 || ex[k] < -60 || ex[k] > w + 60) {
                     if (eage[k] > 10) { ealive[k] = false; continue; }
                 }
-                if (ey[k] > 0 && ey[k] < h - 60 && rnd(firing) == 0) enemyShoot(ex[k], ey[k] + 8);
+                if (ey[k] > 0 && ey[k] < h - 60 && rnd(firing) == 0) enemyShoot(ex[k], ey[k] + 8, 0);
                 for (int i = 0; i < MB; i++) {
                     if (ba[i] && abs(bx[i] - ex[k]) < 10 && abs(by[i] - ey[k]) < 10) {
                         ba[i] = false;
@@ -195,22 +197,83 @@ public class VoidWave extends MIDlet implements CommandListener {
                     damage(w, py);
                 }
             }
+            if (boss) stepBoss(w, py);
             for (int i = 0; i < MEB; i++) {
                 if (!eba[i]) continue;
                 eby[i] += 4 + wave / 8;
-                if (eby[i] > h + 4) { eba[i] = false; continue; }
+                ebx[i] += ebvx[i];
+                if (eby[i] > h + 4 || ebx[i] < -4 || ebx[i] > w + 4) { eba[i] = false; continue; }
                 if (hurt == 0 && abs(ebx[i] - px) < 8 && abs(eby[i] - py) < 10) {
                     eba[i] = false;
                     damage(w, py);
                 }
             }
-            if (alive == 0 && banner == 0) {
-                // clear bonus: grows with the wave, doubled when no enemy got away
-                bonus = 25 * wave;
-                if (kills == count) bonus *= 2;
-                score += bonus;
-                nextWave();
+            if (!boss && alive == 0 && banner == 0) {
+                // the clear bonus is only for a perfect wave: no enemy got away
+                if (kills == count) {
+                    bonus = 50 * wave;
+                    score += bonus;
+                    bonusText = "PERFECT! +" + bonus;
+                    flashT = 60;
+                } else {
+                    bonusText = "";
+                }
+                if (wave % 5 == 0) startBoss(w); else nextWave();
             }
+        }
+
+        private void startBoss(int w) {
+            boss = true;
+            bossN = wave / 5;
+            mmax = 100 + 60 * bossN;
+            mhp = mmax;
+            mx = w / 2; my = -50; mt = 0; mflash = 0;
+            banner = 70;
+            for (int i = 0; i < MEB; i++) eba[i] = false;
+        }
+
+        private void stepBoss(int w, int py) {
+            mt++;
+            if (mflash > 0) mflash--;
+            int tx = w / 2 + sin(mt / 7) * (w / 2 - 44) / 100;
+            my = mt * 2 - 50;
+            if (my > 66) my = 66;
+            mx = tx;
+            // player shots
+            for (int i = 0; i < MB; i++) {
+                if (ba[i] && abs(bx[i] - mx) < 34 && abs(by[i] - my) < 20) {
+                    ba[i] = false;
+                    mhp--;
+                    mflash = 2;
+                }
+            }
+            if (mhp <= 0) {
+                boss = false;
+                boom(mx, my); boom(mx - 24, my + 6); boom(mx + 24, my + 6); boom(mx, my - 14);
+                bonus = 500 * bossN;
+                score += bonus + 100;
+                bonusText = "BOSS DOWN! +" + (bonus + 100);
+                flashT = 80;
+                for (int i = 0; i < MEB; i++) eba[i] = false;
+                nextWave();
+                return;
+            }
+            if (hurt == 0 && abs(mx - px) < 34 && abs(my - py) < 22) damage(w, py);
+            if (banner > 0 || my < 60) return;
+            boolean rage = mhp * 2 < mmax;
+            int rate = 36 - bossN * 3 - (rage ? 10 : 0);
+            if (rate < 14) rate = 14;
+            if (mt % rate != 0) return;
+            int y = my + 20;
+            enemyShoot(mx - 26, y - 6, -1);
+            enemyShoot(mx, y + 4, 0);
+            enemyShoot(mx + 26, y - 6, 1);
+            int vy = 4 + wave / 8;
+            int ax = (px - mx) * vy / (py - y + 1);
+            if (ax > 4) ax = 4;
+            if (ax < -4) ax = -4;
+            enemyShoot(mx, y, ax);
+            if (rage) { enemyShoot(mx - 14, y, -3); enemyShoot(mx + 14, y, 3); }
         }
 
         private void damage(int w, int py) {
@@ -229,9 +292,9 @@ public class VoidWave extends MIDlet implements CommandListener {
             }
         }
 
-        private void enemyShoot(int x, int y) {
+        private void enemyShoot(int x, int y, int vx) {
             for (int i = 0; i < MEB; i++) {
-                if (!eba[i]) { eba[i] = true; ebx[i] = x; eby[i] = y; return; }
+                if (!eba[i]) { eba[i] = true; ebx[i] = x; eby[i] = y; ebvx[i] = vx; return; }
             }
         }
 
@@ -280,6 +343,32 @@ public class VoidWave extends MIDlet implements CommandListener {
             }
         }
 
+        private void drawBoss(Graphics g, int w) {
+            int x = mx, y = my;
+            int hull = mflash > 0 ? 0xffffff : 0x8890b0;
+            int trim = mflash > 0 ? 0xffffff : 0xff4060;
+            g.setColor(hull);
+            g.fillRect(x - 16, y - 16, 32, 32);
+            g.fillTriangle(x - 16, y - 16, x + 16, y - 16, x, y - 28);
+            g.fillTriangle(x - 14, y - 10, x - 42, y + 8, x - 14, y + 14);
+            g.fillTriangle(x + 14, y - 10, x + 42, y + 8, x + 14, y + 14);
+            g.setColor(trim);
+            g.fillRect(x - 36, y + 4, 6, 16);
+            g.fillRect(x + 31, y + 4, 6, 16);
+            g.fillRect(x - 8, y + 16, 16, 10);
+            g.fillRect(x - 16, y - 4, 32, 3);
+            g.setColor(0x050818);
+            g.fillRect(x - 8, y - 12, 16, 10);
+            g.setColor(tick % 8 < 4 ? 0xff2020 : 0xffa020);
+            g.fillRect(x - 4, y - 10, 8, 6);
+            // health bar
+            int bw = w - 16;
+            g.setColor(0x402030);
+            g.fillRect(8, 20, bw, 5);
+            g.setColor(mhp * 2 < mmax ? 0xff4040 : 0xffa040);
+            g.fillRect(8, 20, bw * (mhp > 0 ? mhp : 0) / mmax, 5);
+        }
+
         protected void paint(Graphics g) {
             int w = getWidth(), h = getHeight();
             g.setColor(0x050818);
@@ -313,6 +402,7 @@ public class VoidWave extends MIDlet implements CommandListener {
                 int x = ex[k], y = ey[k];
                 drawEnemy(g, x, y, pattern, ehp[k] > 1 ? 0xffffff : COLORS[pattern]);
             }
+            if (boss) drawBoss(g, w);
             // bullets
             g.setColor(0x80ffff);
             for (int i = 0; i < MB; i++) if (ba[i]) g.fillRect(bx[i] - 1, by[i] - 4, 3, 8);
@@ -338,12 +428,20 @@ public class VoidWave extends MIDlet implements CommandListener {
             g.setColor(0xffffff);
             g.drawString("Score " + score, 4, 2, Graphics.TOP | Graphics.LEFT);
             g.drawString("Lives " + lives, w - 4, 2, Graphics.TOP | Graphics.RIGHT);
+            if (flashT > 0) flashT--;
             if (banner > 0 && !over) {
-                g.setColor(COLORS[pattern]);
-                g.drawString("WAVE " + wave, w / 2, h / 2 - 30, Graphics.TOP | Graphics.HCENTER);
-                if (wave > 1) {
-                    g.setColor(0xffe040);
-                    g.drawString("Clear bonus +" + bonus, w / 2, h / 2 - 10, Graphics.TOP | Graphics.HCENTER);
+                if (boss) {
+                    g.setColor(tick % 6 < 3 ? 0xff4040 : 0xffffff);
+                    g.drawString("WARNING", w / 2, h / 2 - 40, Graphics.TOP | Graphics.HCENTER);
+                    g.setColor(0xff9090);
+                    g.drawString("BOSS " + bossN, w / 2, h / 2 - 20, Graphics.TOP | Graphics.HCENTER);
+                } else {
+                    g.setColor(COLORS[pattern]);
+                    g.drawString("WAVE " + wave, w / 2, h / 2 - 30, Graphics.TOP | Graphics.HCENTER);
+                    if (bonusText.length() > 0) {
+                        g.setColor(flashT % 8 < 4 ? 0xffe040 : 0xffffff);
+                        g.drawString(bonusText, w / 2, h / 2 - 10, Graphics.TOP | Graphics.HCENTER);
+                    }
                 }
             }
             if (over) {
