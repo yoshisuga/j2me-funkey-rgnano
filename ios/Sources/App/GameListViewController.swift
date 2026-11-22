@@ -207,7 +207,7 @@ final class GameListViewController: UICollectionViewController, UIDocumentPicker
 
     private func reload() {
         var list: [Game] = []
-        for name in ["MotherLoad", "StarCatcher"] {   // demo games shipped in the app
+        for name in ["MotherLoad", "StarCatcher", "VoidWave"] {   // demo games shipped in the app
             if let demo = Bundle.main.url(forResource: name, withExtension: "jar"), let g = Game.load(jar: demo) { list.append(g) }
         }
         // jars in Documents/java, also one folder deep (a game with its .jam and .sp in a folder)

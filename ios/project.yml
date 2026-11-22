@@ -25,6 +25,8 @@ targets:
       - path: Resources/MotherLoad.jar
       - path: Demo/StarCatcher.jar
       - path: Demo/StarCatcher.jad
+      - path: Demo/VoidWave.jar
+      - path: Demo/VoidWave.jad
       - path: Resources/Assets.xcassets
     settings:
       base:
