@@ -23,6 +23,8 @@ targets:
       - path: Resources/midp
         type: folder
       - path: Resources/MotherLoad.jar
+      - path: Demo/StarCatcher.jar
+      - path: Demo/StarCatcher.jad
       - path: Resources/Assets.xcassets
     settings:
       base:
