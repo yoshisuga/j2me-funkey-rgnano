@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
@@ -574,7 +575,9 @@ static u32 wasi_err(int e) {
 
 /* The VM's file descriptors are indices into this table, not host fds, so a
  * saved state does not depend on which host fds the new process has free. */
-#define MAXFD 256
+/* Some games open a resource stream per tile and never close it (phones had no such limit), so the
+ * table is large and the process's own file limit is raised to match (iOS starts at 256). */
+#define MAXFD 2048
 static int g_rfd[MAXFD];
 static struct { char path[1024]; int flags; } g_finfo[MAXFD];
 
@@ -820,7 +823,7 @@ static int write_snapshot(const char *path) {
     size_t comp = compression_encode_buffer(out, cap, M.w2c_memory.data, (size_t) n, NULL, COMPRESSION_LZ4);
     if (!comp) { free(out); return -1; }
 
-    SnapFile files[MAXFD];
+    static SnapFile files[MAXFD];
     uint32_t nf = 0;
     for (int v = 3; v < MAXFD; v++) {
         if (g_rfd[v] < 0) continue;
@@ -976,6 +979,7 @@ int host_start(const char *const *args, const char *const *env, const char *rest
     audio_reset();
     g_audio_inited = 0;
     for (int i = 0; i < MAXFD; i++) g_rfd[i] = -1;
+    { struct rlimit rl; if (getrlimit(RLIMIT_NOFILE, &rl) == 0 && rl.rlim_cur < MAXFD + 64) { rl.rlim_cur = rl.rlim_max < MAXFD + 64 ? rl.rlim_max : MAXFD + 64; setrlimit(RLIMIT_NOFILE, &rl); } }
     memset(g_dirs, 0, sizeof g_dirs);
     if (M.w2c_memory.data) wasm2c_midp_free(&M);
     memset(&M, 0, sizeof M);
