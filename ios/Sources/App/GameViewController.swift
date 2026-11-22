@@ -30,11 +30,24 @@ final class GameViewController: UIViewController {
         UIApplication.shared.isIdleTimerDisabled = Settings.global("keepAwake") == "1"
         NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground),
                                                name: UIApplication.didEnterBackgroundNotification, object: nil)
+        // testing aid: `-mash <seconds before> <ms between presses> [action number]` presses a pad key repeatedly
+        let a = CommandLine.arguments
+        if let i = a.firstIndex(of: "-mash"), i + 2 < a.count, let wait = Double(a[i + 1]), let gap = Double(a[i + 2]) {
+            let sym = Int32(PadAction(rawValue: i + 3 < a.count ? Int(a[i + 3]) ?? 6 : 6)?.sym ?? PadAction.soft2.sym)
+            DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+                self?.mashTimer = Timer.scheduledTimer(withTimeInterval: gap / 1000, repeats: true) { _ in
+                    host_key(sym, 1)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { host_key(sym, 0) }
+                }
+            }
+        }
     }
+    private var mashTimer: Timer?
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         UIApplication.shared.isIdleTimerDisabled = false
+        mashTimer?.invalidate()
         NotificationCenter.default.removeObserver(self)
     }
 

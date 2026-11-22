@@ -39,6 +39,8 @@ static WASI g_wasi;
 
 static char g_root[1024];
 static int g_trace;
+/* called from the VM's throw path (see patch-generated.py): with J2ME_TRACE=1 shows which native threw */
+void host_throw_trace(uint32_t sym, uint32_t msg);
 static const char *const *g_args, *const *g_environ;
 static volatile int g_running;
 static pthread_t g_thread;
@@ -634,6 +636,12 @@ u32 w2c_wasi__snapshot__preview1_fd_read(WASI *e, u32 fd, u32 iov, u32 cnt, u32 
     }
     put32(pn, total);
     return 0;
+}
+
+void host_throw_trace(uint32_t sym, uint32_t msg) {
+    if (!g_trace) return;
+    fprintf(stderr, "host: VM throw (symbol 0x%x, message 0x%x), native stack:\n", sym, msg);
+    void *bt[24]; int n = backtrace(bt, 24); backtrace_symbols_fd(bt, n, 2);
 }
 
 u32 w2c_wasi__snapshot__preview1_fd_seek(WASI *e, u32 fd, u32 lo, u32 hi, u32 whence, u32 pnew) {
