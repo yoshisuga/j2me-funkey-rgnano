@@ -30,7 +30,7 @@ public class StarCatcher extends MIDlet implements CommandListener {
         private static final int N = 5;
         private final int[] sx = new int[N], sy = new int[N], sv = new int[N];
         private int px, move, score, lives, best, tick;
-        private boolean over, running;
+        private boolean over, running, title = true;
         private long seed = 12345;
         private Thread thread;
 
@@ -73,13 +73,13 @@ public class StarCatcher extends MIDlet implements CommandListener {
         }
 
         private void step() {
-            if (over) return;
+            tick++;
+            if (title || over) return;
             int w = getWidth(), h = getHeight();
             int pw = 36, py = h - 14;
             px += move * 5;
             if (px < pw / 2) px = pw / 2;
             if (px > w - pw / 2) px = w - pw / 2;
-            tick++;
             for (int i = 0; i < N; i++) {
                 sy[i] += sv[i];
                 if (sy[i] >= py - 6 && sy[i] <= py + 4 && sx[i] >= px - pw / 2 - 4 && sx[i] <= px + pw / 2 + 4) {
@@ -98,6 +98,22 @@ public class StarCatcher extends MIDlet implements CommandListener {
 
         protected void paint(Graphics g) {
             int w = getWidth(), h = getHeight();
+            if (title) {
+                g.setColor(0x10183c);
+                g.fillRect(0, 0, w, h);
+                g.setColor(0xffe040);
+                g.drawString("Star Catcher", w / 2, h / 4, Graphics.TOP | Graphics.HCENTER);
+                g.setColor(0xffffff);
+                g.drawString("Catch the falling stars", w / 2, h / 4 + 22, Graphics.TOP | Graphics.HCENTER);
+                g.drawString("Created for GenJ2", w / 2, h / 2 + 10, Graphics.TOP | Graphics.HCENTER);
+                g.drawString("by Yoshi Sugawara", w / 2, h / 2 + 28, Graphics.TOP | Graphics.HCENTER);
+                g.drawString("2026", w / 2, h / 2 + 46, Graphics.TOP | Graphics.HCENTER);
+                if ((tick / 12) % 2 == 0) {
+                    g.setColor(0xffe040);
+                    g.drawString("Press OK to start", w / 2, h - 50, Graphics.TOP | Graphics.HCENTER);
+                }
+                return;
+            }
             g.setColor(0x10183c);
             g.fillRect(0, 0, w, h);
             g.setColor(0x3a4a8c);
@@ -131,7 +147,10 @@ public class StarCatcher extends MIDlet implements CommandListener {
         protected void keyPressed(int key) {
             int d = dir(key);
             if (d != 0) move = d;
-            else if (over && (getGameAction(key) == FIRE || key == Canvas.KEY_NUM5)) reset();
+            else if (getGameAction(key) == FIRE || key == Canvas.KEY_NUM5) {
+                if (title) { title = false; reset(); }
+                else if (over) reset();
+            }
         }
 
         protected void keyRepeated(int key) { keyPressed(key); }

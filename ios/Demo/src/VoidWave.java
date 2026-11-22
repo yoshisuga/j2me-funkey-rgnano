@@ -43,7 +43,7 @@ public class VoidWave extends MIDlet implements CommandListener {
         private final int[] xx = new int[MX], xy = new int[MX], xa = new int[MX];
 
         private int px, move, score, best, lives, wave, pattern, count, tick, fire, hurt, banner, kills, bonus;
-        private boolean over, running;
+        private boolean over, running, title = true;
         private long seed = 777;
 
         Game() { reset(); }
@@ -143,7 +143,7 @@ public class VoidWave extends MIDlet implements CommandListener {
         private void step() {
             tick++;
             for (int i = 0; i < MX; i++) if (xa[i] < 99) xa[i]++;
-            if (over) return;
+            if (title || over) return;
             int w = getWidth(), h = getHeight();
             int py = h - 28;
             px += move * 6;
@@ -241,12 +241,27 @@ public class VoidWave extends MIDlet implements CommandListener {
             int w = getWidth(), h = getHeight();
             g.setColor(0x050818);
             g.fillRect(0, 0, w, h);
+
             // starfield: three speeds
             for (int i = 0; i < 40; i++) {
                 int sp = 1 + i % 3;
                 int y = (i * 37 + tick * sp) % h;
                 g.setColor(sp == 1 ? 0x30386a : sp == 2 ? 0x6068a8 : 0xc0c8ff);
                 g.fillRect((i * 71) % w, y, 1, sp);
+            }
+            if (title) {
+                g.setColor(0x40e0ff);
+                g.drawString("VOID WAVE", w / 2, h / 4, Graphics.TOP | Graphics.HCENTER);
+                g.setColor(0xffffff);
+                g.drawString("Survive the waves", w / 2, h / 4 + 22, Graphics.TOP | Graphics.HCENTER);
+                g.drawString("Created for GenJ2", w / 2, h / 2 + 10, Graphics.TOP | Graphics.HCENTER);
+                g.drawString("by Yoshi Sugawara", w / 2, h / 2 + 28, Graphics.TOP | Graphics.HCENTER);
+                g.drawString("2026", w / 2, h / 2 + 46, Graphics.TOP | Graphics.HCENTER);
+                if ((tick / 12) % 2 == 0) {
+                    g.setColor(0x40e0ff);
+                    g.drawString("Press OK to start", w / 2, h - 50, Graphics.TOP | Graphics.HCENTER);
+                }
+                return;
             }
             // enemies
             g.setColor(COLORS[pattern]);
@@ -310,7 +325,10 @@ public class VoidWave extends MIDlet implements CommandListener {
         protected void keyPressed(int key) {
             int d = dir(key);
             if (d != 0) move = d;
-            else if (over && (getGameAction(key) == FIRE || key == Canvas.KEY_NUM5)) reset();
+            else if (getGameAction(key) == FIRE || key == Canvas.KEY_NUM5) {
+                if (title) { title = false; reset(); }
+                else if (over) reset();
+            }
         }
 
         protected void keyRepeated(int key) { keyPressed(key); }
