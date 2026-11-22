@@ -293,8 +293,8 @@ final class PadView: UIView, UIGestureRecognizerDelegate {
         let cell = max(40, min(land ? (b.height - 16) / 4.2 : b.width / 6.2, land ? 64 : 76))
         let D = cell * 3 + g * 2
 
-        // d-pad or stick (hidden in portrait keypad mode)
-        let showDpad = !keypad || land
+        // d-pad or stick (the keypad replaces it; the keypad block keeps soft L / R and OK)
+        let showDpad = !keypad
         var dpadRect = CGRect.zero
         if showDpad {
             let dy = land ? b.height - D - 8 : max(4, (b.height - D) / 2)
