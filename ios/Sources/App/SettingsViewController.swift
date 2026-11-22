@@ -52,7 +52,7 @@ final class SettingsViewController: UITableViewController {
     override func tableView(_ tv: UITableView, titleForFooterInSection s: Int) -> String? {
         guard s == sections.count - 1 else { return nil }
         return slug == nil
-            ? "These apply to every game that has no setting of its own. Changes take effect the next time a game starts. Choices made in a game's runtime menu win over these until the same setting is changed in a game's settings."
+            ? "These apply to every game that has no setting of its own. Changes take effect the next time a game starts."
             : "Changes apply the next time the game starts. “Same as app setting” follows Settings on the games list."
     }
 

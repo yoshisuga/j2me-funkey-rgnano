@@ -101,7 +101,6 @@ final class GameViewController: UIViewController {
                 }])
             },
             UIAction(title: "Edit Controls", image: UIImage(systemName: "hand.draw")) { [weak self] _ in self?.pad.setEditing(true) },
-            UIAction(title: "Runtime Menu", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.runtimeMenu() },
             UIAction(title: "Game Settings", image: UIImage(systemName: "gearshape")) { [weak self] _ in self?.gameSettings() },
             UIDeferredMenuElement.uncached { [weak self] done in
                 let L = Launcher.shared
@@ -138,13 +137,6 @@ final class GameViewController: UIViewController {
         }
         view.setNeedsLayout()
         UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
-    }
-
-    /// The runtime's own menu (display, sound, keys), opened with its menu key.
-    private func runtimeMenu() {
-        let sym = Int32(PadAction.menu.sym)
-        host_key(sym, 1)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { host_key(sym, 0) }
     }
 
     private func gameSettings() {

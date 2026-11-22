@@ -115,28 +115,9 @@ final class Launcher {
         return out
     }
 
-    private func applyRuntimeChoices(slug: String, to env: inout [String: String]) {
-        let g = readRuntimeChoices(slug)
-        if let v = g["DISPLAY_MODE"] { env["PHONEME_SCALE_MODE"] = v }
-        if let v = g["FILTER"] { env["PHONEME_SCALE_FILTER"] = v }
-        if let v = g["FPS_LIMIT"] { env["PHONEME_FPS_LIMIT"] = v }
-        if let v = g["VOLUME"] { env["PHONEME_SOUND_VOLUME"] = v }
-        if let v = g["SYNTH"] { env["PHONEME_SYNTH"] = v }
-        if let z = g["SCALE"], z.hasPrefix("zoom-"), let n = Int(z.dropFirst(5)) {   // zoom-150 = 150%, zoom-1875 = 187.5%
-            env["PHONEME_SCALE_RATIO"] = String(z.dropFirst(5).count <= 3 ? n * 10 : n)
-        }
-        if let x = g["PAN_X"] { env["PHONEME_PAN"] = "\(x),\(g["PAN_Y"] ?? "0")" }
-        if let v = g["VIEW"] {
-            if v == "full" { env["PHONEME_SOURCE_SIZE"] = "full" }
-            else if v.range(of: #"^\d+x\d+$"#, options: .regularExpression) != nil {
-                env["PHONEME_SOURCE_SIZE"] = v; env["PHONEME_LCD_SIZE"] = v
-            }
-        }
-    }
-
     /// One source of truth: whatever the runtime menu saved for a setting the app also has (scaling, smoothing,
     /// frame rate, volume, synthesizer) becomes that game's setting, and the runtime menu's copy is removed.
-    /// The settings screen then always shows what is in effect; the runtime menu keeps the rest (zoom, pan, view, keys).
+    /// The runtime menu itself is no longer shown, so the settings screen is the only place these are set.
     func adoptRuntimeChoices(slug: String) {
         let saved = readRuntimeChoices(slug)
         for d in Settings.defs where d.perGame {
@@ -237,7 +218,6 @@ final class Launcher {
         ]
         if game.isIAppli { env["PHONEME_SOURCE_SIZE"] = "\(lcd.0)x\(lcd.1)" }
         env.merge(Settings.runtimeEnv(slug)) { $1 }
-        applyRuntimeChoices(slug: slug, to: &env)      // what the runtime menu saved wins
         // PHONEME_* variables of the app's own environment (debugging: simctl SIMCTL_CHILD_PHONEME_KEY_DEBUG=1)
         for (k, v) in ProcessInfo.processInfo.environment where k.hasPrefix("PHONEME_") { env[k] = v }
         let env2 = env.map { "\($0.key)=\($0.value)" }.sorted()
