@@ -127,6 +127,18 @@ final class Launcher {
         }
     }
 
+    /// One source of truth: whatever the runtime menu saved for a setting the app also has (scaling, smoothing,
+    /// frame rate, volume, synthesizer) becomes that game's setting, and the runtime menu's copy is removed.
+    /// The settings screen then always shows what is in effect; the runtime menu keeps the rest (zoom, pan, view, keys).
+    func adoptRuntimeChoices(slug: String) {
+        let saved = readRuntimeChoices(slug)
+        for d in Settings.defs where d.perGame {
+            guard let k = d.cfgKey, let v = saved[k], d.choices.contains(where: { $0.0 == v }) else { continue }
+            Settings.setOverride(slug, d.key, v)
+            removeRuntimeChoice(slug: slug, key: k)
+        }
+    }
+
     /// Drops one saved runtime-menu choice (the settings screen changed the same thing).
     func removeRuntimeChoice(slug: String, key: String) {
         guard let text = try? String(contentsOf: cfgURL(slug), encoding: .utf8) else { return }
@@ -155,6 +167,7 @@ final class Launcher {
         let fm = FileManager.default
         try installRuntimeFiles()
         let slug = game.slug
+        adoptRuntimeChoices(slug: slug)
         let lcd = game.lcd
 
         currentSlug = slug
