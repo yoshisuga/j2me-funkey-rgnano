@@ -11,8 +11,12 @@ enum PadAction: Int, CaseIterable {
     var sym: Int { PadAction.virtualSym + rawValue }
 
     /// Phone key code; the soft keys follow the handset style chosen in the settings.
-    func phoneCode(soft: (Int, Int)) -> Int {
+    func phoneCode(soft: (Int, Int), arrowsAsDigits: Bool = false) -> Int {
         switch self {
+        case .up where arrowsAsDigits: return 56
+        case .left where arrowsAsDigits: return 52
+        case .right where arrowsAsDigits: return 54
+        case .down where arrowsAsDigits: return 50
         case .soft1: return soft.0
         case .soft2: return soft.1
         default: return phoneCode
@@ -202,7 +206,8 @@ final class Launcher {
         host_set_root(root.path)
 
         let soft = Settings.softCodes(slug)
-        let keys = PadAction.allCases.map { "\($0.sym)=\($0.phoneCode(soft: soft))" }.joined(separator: ";")
+        let digits = Settings.effective(slug, "arrowDigits") == "1"
+        let keys = PadAction.allCases.map { "\($0.sym)=\($0.phoneCode(soft: soft, arrowsAsDigits: digits))" }.joined(separator: ";")
         var env: [String: String] = [
             "MIDP_HOME": "/midp",
             "PHONEME_RMS_HOME": "/rms/\(slug)",
