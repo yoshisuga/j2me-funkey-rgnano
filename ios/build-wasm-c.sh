@@ -31,6 +31,7 @@ for f in meta['files']:
     open(p, 'wb').write(data[f['start']:f['end']])
 print(len(meta['files']), 'runtime files')
 PY
+python3 -I "$HERE/patch-generated.py" "$GEN"
 [ -f "$WASM_SRC/MotherLoad.jar" ] && cp "$WASM_SRC/MotherLoad.jar" "$HERE/Resources/"
 # wasm-rt runtime, copied so the Xcode project is self-contained
 WABT=$(dirname "$(dirname "$(command -v wasm2c)")")
