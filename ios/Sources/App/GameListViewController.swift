@@ -92,7 +92,7 @@ final class GameListViewController: UICollectionViewController, UIDocumentPicker
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "J2ME"
+        title = "GenJ2"
         makeRegistrations()
         collectionView.backgroundColor = .systemGroupedBackground
         collectionView.alwaysBounceVertical = true
@@ -197,7 +197,7 @@ final class GameListViewController: UICollectionViewController, UIDocumentPicker
             importedAtLaunch = true
             importURLs([URL(fileURLWithPath: CommandLine.arguments[i + 1])])
         }
-        // testing aid: `simctl launch <device> org.j2me.funkey -autostart [n]`
+        // testing aid: `simctl launch <device> com.ievo.genj2 -autostart [n]`
         if !autostarted, let i = CommandLine.arguments.firstIndex(of: "-autostart"), !games.isEmpty {
             autostarted = true
             let n = i + 1 < CommandLine.arguments.count ? Int(CommandLine.arguments[i + 1]) ?? 0 : 0

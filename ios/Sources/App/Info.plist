@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>J2ME</string>
+	<string>GenJ2</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -15,9 +15,9 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>org.j2me.jar</string>
-				<string>org.j2me.jam</string>
-				<string>org.j2me.sp</string>
+				<string>com.ievo.genj2.jar</string>
+				<string>com.ievo.genj2.jam</string>
+				<string>com.ievo.genj2.sp</string>
 			</array>
 		</dict>
 	</array>
@@ -74,7 +74,7 @@
 			<key>UTTypeDescription</key>
 			<string>Java archive</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.j2me.jar</string>
+			<string>com.ievo.genj2.jar</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -91,7 +91,7 @@
 			<key>UTTypeDescription</key>
 			<string>i-appli descriptor</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.j2me.jam</string>
+			<string>com.ievo.genj2.jam</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -108,7 +108,7 @@
 			<key>UTTypeDescription</key>
 			<string>i-appli scratchpad</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.j2me.sp</string>
+			<string>com.ievo.genj2.sp</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

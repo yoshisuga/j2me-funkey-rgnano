@@ -1,6 +1,6 @@
 name: J2MEfun
 options:
-  bundleIdPrefix: org.j2me
+  bundleIdPrefix: com.ievo
   deploymentTarget:
     iOS: "15.0"
 settings:
@@ -33,11 +33,11 @@ targets:
           - "WASM_RT_MAX_CALL_STACK_DEPTH=200000"
           - "$(inherited)"
         OTHER_LDFLAGS: ["-lcompression"]
-        PRODUCT_BUNDLE_IDENTIFIER: org.j2me.funkey
+        PRODUCT_BUNDLE_IDENTIFIER: com.ievo.genj2
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        INFOPLIST_KEY_CFBundleDisplayName: J2ME
+        INFOPLIST_KEY_CFBundleDisplayName: GenJ2
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_DEBUG_DYLIB: NO
         # the VM is 35 MB of translated C: unoptimised (Xcode's Debug default) is several times slower
@@ -50,22 +50,22 @@ targets:
       properties:
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
-        CFBundleDisplayName: J2ME
+        CFBundleDisplayName: GenJ2
         UILaunchScreen: {}
         CFBundleDocumentTypes:
           - CFBundleTypeName: Java game file
             LSHandlerRank: Alternate
-            LSItemContentTypes: [org.j2me.jar, org.j2me.jam, org.j2me.sp]
+            LSItemContentTypes: [com.ievo.genj2.jar, com.ievo.genj2.jam, com.ievo.genj2.sp]
         UTImportedTypeDeclarations:
-          - UTTypeIdentifier: org.j2me.jar
+          - UTTypeIdentifier: com.ievo.genj2.jar
             UTTypeDescription: Java archive
             UTTypeConformsTo: [public.data]
             UTTypeTagSpecification: {public.filename-extension: [jar]}
-          - UTTypeIdentifier: org.j2me.jam
+          - UTTypeIdentifier: com.ievo.genj2.jam
             UTTypeDescription: i-appli descriptor
             UTTypeConformsTo: [public.data]
             UTTypeTagSpecification: {public.filename-extension: [jam]}
-          - UTTypeIdentifier: org.j2me.sp
+          - UTTypeIdentifier: com.ievo.genj2.sp
             UTTypeDescription: i-appli scratchpad
             UTTypeConformsTo: [public.data]
             UTTypeTagSpecification: {public.filename-extension: [sp]}
