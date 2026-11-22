@@ -76,11 +76,20 @@ final class GameViewController: UIViewController {
         menuButton.showsMenuAsPrimaryAction = true
         menuButton.menu = UIMenu(children: [
             UIDeferredMenuElement.uncached { [weak self] done in
-                let on = self?.isFullScreen ?? false
-                done([UIAction(title: on ? "Exit Full Screen" : "Full Screen",
-                               image: UIImage(systemName: on ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")) { _ in
-                    self?.toggleFullScreen()
-                }])
+                guard let self = self else { return done([]) }
+                let on = self.isFullScreen
+                let mode = Settings.effective(self.game.slug, "scaleMode")
+                func item(_ title: String, _ image: String, full: Bool, scale: String?, selected: Bool) -> UIAction {
+                    UIAction(title: title, image: UIImage(systemName: image), state: selected ? .on : .off) { [weak self] _ in
+                        self?.setFullScreen(full, scale: scale)
+                    }
+                }
+                done([UIMenu(title: "Full Screen", image: UIImage(systemName: on ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"), children: [
+                    item("Off", "rectangle.compress.vertical", full: false, scale: nil, selected: !on),
+                    item("Fit (keep shape)", "arrow.up.left.and.arrow.down.right", full: true, scale: "auto", selected: on && mode != "fill" && mode != "crop"),
+                    item("Crop (fill screen, trim edges)", "crop", full: true, scale: "crop", selected: on && mode == "crop"),
+                    item("Stretch (fill screen)", "rectangle.expand.vertical", full: true, scale: "fill", selected: on && mode == "fill"),
+                ])])
             },
             UIAction(title: "Edit Controls", image: UIImage(systemName: "hand.draw")) { [weak self] _ in self?.pad.setEditing(true) },
             UIAction(title: "Runtime Menu", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.runtimeMenu() },
@@ -100,8 +109,13 @@ final class GameViewController: UIViewController {
 
     private var isFullScreen: Bool { Settings.effective(game.slug, "fullScreen") == "1" }
 
-    private func toggleFullScreen() {
-        Settings.setOverride(game.slug, "fullScreen", isFullScreen ? "0" : "1")
+    /// Full screen on/off, and how the game fills it (kept per game).
+    private func setFullScreen(_ on: Bool, scale: String?) {
+        Settings.setOverride(game.slug, "fullScreen", on ? "1" : "0")
+        if let sc = scale {
+            Settings.setOverride(game.slug, "scaleMode", sc)
+            Launcher.shared.removeRuntimeChoice(slug: game.slug, key: "DISPLAY_MODE")
+        }
         view.setNeedsLayout()
         UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
     }

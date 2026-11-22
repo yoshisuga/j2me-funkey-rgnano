@@ -40,6 +40,9 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: J2ME
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_DEBUG_DYLIB: NO
+        # the VM is 35 MB of translated C: unoptimised (Xcode's Debug default) is several times slower
+        GCC_OPTIMIZATION_LEVEL: "2"
+        SWIFT_OPTIMIZATION_LEVEL: "-O"
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
     info:
