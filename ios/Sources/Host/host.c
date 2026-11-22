@@ -600,6 +600,7 @@ static void drop_dir(int fd) {
 u32 w2c_wasi__snapshot__preview1_fd_close(WASI *e, u32 fd) {
     (void) e;
     if (g_trace) fprintf(stderr, "host: close(%u)\n", fd);
+    if (fd < 3) return 0;   /* a stream with handle 0 is never opened: closing the host's stdin kills the app (guarded fd) */
     drop_dir((int) fd);
     int r = rfd(fd);
     if (r < 0) return 8;
