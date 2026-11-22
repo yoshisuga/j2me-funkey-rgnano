@@ -42,7 +42,7 @@ public class VoidWave extends MIDlet implements CommandListener {
         // explosions
         private final int[] xx = new int[MX], xy = new int[MX], xa = new int[MX];
 
-        private int px, move, score, best, lives, wave, pattern, count, tick, fire, hurt, banner;
+        private int px, move, score, best, lives, wave, pattern, count, tick, fire, hurt, banner, kills, bonus;
         private boolean over, running;
         private long seed = 777;
 
@@ -59,7 +59,7 @@ public class VoidWave extends MIDlet implements CommandListener {
 
         private void reset() {
             int w = getWidth() > 0 ? getWidth() : 240;
-            px = w / 2; move = 0; score = 0; lives = 3; wave = 0; tick = 0; fire = 0; hurt = 0;
+            px = w / 2; move = 0; score = 0; bonus = 0; lives = 3; wave = 0; tick = 0; fire = 0; hurt = 0;
             over = false;
             for (int i = 0; i < ME; i++) ealive[i] = false;
             for (int i = 0; i < MB; i++) ba[i] = false;
@@ -70,6 +70,7 @@ public class VoidWave extends MIDlet implements CommandListener {
 
         private void nextWave() {
             wave++;
+            kills = 0;
             pattern = (wave - 1) % 6;
             count = 6 + (wave - 1) / 6 * 2;
             if (count > ME) count = ME;
@@ -82,7 +83,7 @@ public class VoidWave extends MIDlet implements CommandListener {
                 eage[i] = 0;
                 ehp[i] = 1 + (wave > 6 && i % 3 == 0 ? 1 : 0) + (wave > 12 && i % 2 == 0 ? 1 : 0);
                 int gap = pattern == 4 ? 6 : (pattern == 0 || pattern == 1) ? 0 : 10;
-                est[i] = banner + i * gap;
+                est[i] = tick + banner + i * gap;
                 ex[i] = -50; ey[i] = -50;
             }
         }
@@ -181,6 +182,7 @@ public class VoidWave extends MIDlet implements CommandListener {
                         ba[i] = false;
                         if (--ehp[k] <= 0) {
                             ealive[k] = false;
+                            kills++;
                             score += 10;
                             boom(ex[k], ey[k]);
                         }
@@ -203,7 +205,10 @@ public class VoidWave extends MIDlet implements CommandListener {
                 }
             }
             if (alive == 0 && banner == 0) {
-                score += 20;
+                // clear bonus: grows with the wave, doubled when no enemy got away
+                bonus = 25 * wave;
+                if (kills == count) bonus *= 2;
+                score += bonus;
                 nextWave();
             }
         }
@@ -281,6 +286,10 @@ public class VoidWave extends MIDlet implements CommandListener {
             if (banner > 0 && !over) {
                 g.setColor(COLORS[pattern]);
                 g.drawString("WAVE " + wave, w / 2, h / 2 - 30, Graphics.TOP | Graphics.HCENTER);
+                if (wave > 1) {
+                    g.setColor(0xffe040);
+                    g.drawString("Clear bonus +" + bonus, w / 2, h / 2 - 10, Graphics.TOP | Graphics.HCENTER);
+                }
             }
             if (over) {
                 g.setColor(0xff6060);
