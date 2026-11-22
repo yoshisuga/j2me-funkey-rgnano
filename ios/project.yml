@@ -23,6 +23,7 @@ targets:
       - path: Resources/midp
         type: folder
       - path: Resources/MotherLoad.jar
+      - path: Resources/Assets.xcassets
     settings:
       base:
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Host/Bridging.h
@@ -38,6 +39,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_CFBundleDisplayName: GenJ2
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_DEBUG_DYLIB: NO
         # the VM is 35 MB of translated C: unoptimised (Xcode's Debug default) is several times slower
