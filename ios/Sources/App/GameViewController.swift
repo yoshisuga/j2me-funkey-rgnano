@@ -60,6 +60,7 @@ final class GameViewController: UIViewController {
         screenHost.layer.addSublayer(screenLayer)
         view.addSubview(screenHost)
         view.addSubview(pad)
+        watchHinge()
 
         titleLabel.text = game.name
         titleLabel.textColor = UIColor(white: 1, alpha: 0.6)
@@ -90,6 +91,14 @@ final class GameViewController: UIViewController {
                     item("Crop (fill screen, trim edges)", "crop", full: true, scale: "crop", selected: on && mode == "crop"),
                     item("Stretch (fill screen)", "rectangle.expand.vertical", full: true, scale: "fill", selected: on && mode == "fill"),
                 ])])
+            },
+            UIDeferredMenuElement.uncached { [weak self] done in
+                guard let self = self, self.hingeStatus == 2 else { return done([]) }
+                done([UIAction(title: "Swap Screen & Controls", image: UIImage(systemName: "arrow.left.arrow.right")) { [weak self] _ in
+                    self?.foldSwapped.toggle()
+                    self?.view.setNeedsLayout()
+                    UIView.animate(withDuration: 0.25) { self?.view.layoutIfNeeded() }
+                }])
             },
             UIAction(title: "Edit Controls", image: UIImage(systemName: "hand.draw")) { [weak self] _ in self?.pad.setEditing(true) },
             UIAction(title: "Runtime Menu", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.runtimeMenu() },
@@ -163,6 +172,45 @@ final class GameViewController: UIViewController {
         present(a, animated: true)
     }
 
+    // MARK: folded layouts (foldable phones)
+
+    private var hingeStatus = 0          // UIHinge.Status: 2 = partially open
+    private var foldSwapped: Bool {
+        get { UserDefaults.standard.bool(forKey: "fold.swap") }
+        set { UserDefaults.standard.set(newValue, forKey: "fold.swap") }
+    }
+
+    private func watchHinge() {
+        if #available(iOS 27.1, *) {
+            view.addInteraction(UIHingeInteraction { [weak self] _, update in
+                guard let self = self else { return }
+                let s = update.hinge?.status.rawValue ?? 0
+                if s != self.hingeStatus {
+                    self.hingeStatus = s
+                    self.view.setNeedsLayout()
+                    UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
+                }
+            })
+        }
+    }
+
+    /// Half-open hinge: the display is two panes split across its long side. Held wide the panes are left and right
+    /// (game on one, controls on the other); held tall they are top and bottom, like a DS. "Swap" flips them.
+    private func foldPanes(_ safe: CGRect) -> (screen: CGRect, controls: CGRect)? {
+        let b = view.bounds
+        guard hingeStatus == 2, max(b.width, b.height) >= min(b.width, b.height) * 1.25 else { return nil }
+        let gap: CGFloat = 12
+        let first: CGRect, second: CGRect
+        if b.width > b.height {
+            first = CGRect(x: safe.minX, y: safe.minY, width: b.midX - gap - safe.minX, height: safe.height)
+            second = CGRect(x: b.midX + gap, y: safe.minY, width: safe.maxX - b.midX - gap, height: safe.height)
+        } else {
+            first = CGRect(x: safe.minX, y: safe.minY, width: safe.width, height: b.midY - gap - safe.minY)
+            second = CGRect(x: safe.minX, y: b.midY + gap, width: safe.width, height: safe.maxY - b.midY - gap)
+        }
+        return foldSwapped ? (second, first) : (first, second)
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let rawSafe = view.bounds.inset(by: view.safeAreaInsets)
@@ -175,7 +223,17 @@ final class GameViewController: UIViewController {
         let padH: CGFloat = landscape ? 0 : min(safe.height * 0.42, 300)
         var w: CGFloat, h: CGFloat
 
-        if full {
+        let fold = foldPanes(rawSafe)
+        if let fold = fold {
+            let area = fold.screen.insetBy(dx: 8, dy: 8)
+            w = area.width; h = w / aspect
+            if h > area.height { h = area.height; w = h * aspect }
+            screenHost.frame = CGRect(x: area.midX - w / 2, y: area.midY - h / 2, width: w, height: h)
+            screenLayer.contentsGravity = .resize
+            titleLabel.isHidden = true
+            menuButton.frame = CGRect(x: fold.controls.maxX - 48, y: fold.controls.minY + 4, width: 44, height: 44)
+            menuButton.backgroundColor = .clear
+        } else if full {
             // the game fills the screen (its shape kept); the controls lie over it
             let mode = Settings.effective(game.slug, "scaleMode")
             if mode == "fill" || mode == "crop" {
@@ -210,14 +268,22 @@ final class GameViewController: UIViewController {
             titleLabel.isHidden = landscape
         }
         screenLayer.frame = screenHost.bounds
-        // the pad spans the full width so blocks can be dragged into the side safe areas
-        pad.leftInset = safe.minX
-        pad.rightInset = view.bounds.width - safe.maxX
-        // upright the pad covers the whole screen (touches pass through empty parts) so controls can be dragged anywhere;
-        // its default layout sits in the lower part
-        pad.homeRect = landscape ? nil : CGRect(x: 0, y: safe.height - padH, width: view.bounds.width, height: padH)
-        pad.frame = CGRect(x: 0, y: safe.minY, width: view.bounds.width, height: safe.height)
-        pad.opacityFactor = full ? 0.7 : 1
+        if let fold = fold {
+            // the controls fill their own pane
+            pad.leftInset = 0; pad.rightInset = 0
+            pad.homeRect = nil
+            pad.frame = fold.controls
+            pad.opacityFactor = 1
+        } else {
+            // the pad spans the full width so blocks can be dragged into the side safe areas
+            pad.leftInset = safe.minX
+            pad.rightInset = view.bounds.width - safe.maxX
+            // upright the pad covers the whole screen (touches pass through empty parts) so controls can be dragged anywhere;
+            // its default layout sits in the lower part
+            pad.homeRect = landscape ? nil : CGRect(x: 0, y: safe.height - padH, width: view.bounds.width, height: padH)
+            pad.frame = CGRect(x: 0, y: safe.minY, width: view.bounds.width, height: safe.height)
+            pad.opacityFactor = full ? 0.7 : 1
+        }
         view.bringSubviewToFront(pad)
         view.bringSubviewToFront(menuButton)
 
