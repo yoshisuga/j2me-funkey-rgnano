@@ -237,6 +237,49 @@ public class VoidWave extends MIDlet implements CommandListener {
 
         private static final int[] COLORS = {0xff5050, 0xff9a30, 0xd060ff, 0x50e060, 0xffe040, 0xff60b0};
 
+        /** One shape per wave pattern; col is the body colour. */
+        private void drawEnemy(Graphics g, int x, int y, int shape, int col) {
+            int dark = 0x050818;
+            g.setColor(col);
+            if (shape == 0) {            // dart: inverted triangle with a cockpit
+                g.fillTriangle(x - 9, y - 7, x + 9, y - 7, x, y + 8);
+                g.setColor(dark);
+                g.fillRect(x - 2, y - 4, 4, 3);
+            } else if (shape == 1) {     // diamond
+                g.fillTriangle(x - 9, y, x + 9, y, x, y - 10);
+                g.fillTriangle(x - 9, y, x + 9, y, x, y + 10);
+                g.setColor(dark);
+                g.fillRect(x - 2, y - 2, 4, 4);
+            } else if (shape == 2) {     // saucer: dome and wide hull
+                g.fillArc(x - 6, y - 10, 12, 12, 0, 180);
+                g.fillRect(x - 11, y - 2, 22, 5);
+                g.setColor(dark);
+                g.fillRect(x - 7, y, 3, 2);
+                g.fillRect(x - 1, y, 3, 2);
+                g.fillRect(x + 5, y, 3, 2);
+            } else if (shape == 3) {     // swept wing
+                g.fillTriangle(x, y + 8, x - 11, y - 8, x, y - 3);
+                g.fillTriangle(x, y + 8, x + 11, y - 8, x, y - 3);
+                g.setColor(dark);
+                g.fillRect(x - 1, y - 3, 3, 5);
+            } else if (shape == 4) {     // block with side pods
+                g.fillRect(x - 5, y - 8, 10, 16);
+                g.fillRect(x - 10, y - 4, 4, 10);
+                g.fillRect(x + 7, y - 4, 4, 10);
+                g.setColor(dark);
+                g.fillRect(x - 2, y - 5, 4, 4);
+            } else {                     // crab: body, claws and legs
+                g.fillRect(x - 7, y - 5, 14, 8);
+                g.fillRect(x - 11, y - 8, 4, 8);
+                g.fillRect(x + 8, y - 8, 4, 8);
+                g.fillRect(x - 6, y + 3, 3, 4);
+                g.fillRect(x + 4, y + 3, 3, 4);
+                g.setColor(dark);
+                g.fillRect(x - 4, y - 3, 3, 3);
+                g.fillRect(x + 2, y - 3, 3, 3);
+            }
+        }
+
         protected void paint(Graphics g) {
             int w = getWidth(), h = getHeight();
             g.setColor(0x050818);
@@ -268,10 +311,7 @@ public class VoidWave extends MIDlet implements CommandListener {
             for (int k = 0; k < count; k++) {
                 if (!ealive[k] || ey[k] < -12) continue;
                 int x = ex[k], y = ey[k];
-                g.setColor(ehp[k] > 1 ? 0xffffff : COLORS[pattern]);
-                g.fillTriangle(x - 9, y - 7, x + 9, y - 7, x, y + 8);
-                g.setColor(0x050818);
-                g.fillRect(x - 2, y - 4, 4, 3);
+                drawEnemy(g, x, y, pattern, ehp[k] > 1 ? 0xffffff : COLORS[pattern]);
             }
             // bullets
             g.setColor(0x80ffff);
