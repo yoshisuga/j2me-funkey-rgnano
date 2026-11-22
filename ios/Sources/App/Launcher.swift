@@ -82,16 +82,23 @@ final class Launcher {
     }
 
     private(set) var currentSlug = ""
-    var stateURL: URL { root.appendingPathComponent("save/\(currentSlug).state") }
-    private var rmsSaveURL: URL { root.appendingPathComponent("save/\(currentSlug).rms") }
-    var hasState: Bool { FileManager.default.fileExists(atPath: stateURL.path) }
+    /// Save slots: 1...slotCount are the player's; 0 is the automatic one (leaving the app, "Save State & Close").
+    /// Slot 0 keeps the old single-state file names, so earlier saves are still there.
+    static let slotCount = 10
+    private func slotName(_ slot: Int) -> String { slot == 0 ? currentSlug : "\(currentSlug).\(slot)" }
+    func stateURL(slot: Int) -> URL { root.appendingPathComponent("save/\(slotName(slot)).state") }
+    private func rmsSaveURL(slot: Int) -> URL { root.appendingPathComponent("save/\(slotName(slot)).rms") }
+    func hasState(slot: Int) -> Bool { FileManager.default.fileExists(atPath: stateURL(slot: slot).path) }
+    func stateDate(slot: Int) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: stateURL(slot: slot).path))?[.modificationDate] as? Date
+    }
 
     /// Called after a successful host_save_state: the game's record stores belong to the state.
-    func saveRecordStores() {
+    func saveRecordStores(slot: Int) {
         let fm = FileManager.default
         let src = root.appendingPathComponent("rms/\(currentSlug)")
-        try? fm.removeItem(at: rmsSaveURL)
-        try? fm.copyItem(at: src, to: rmsSaveURL)
+        try? fm.removeItem(at: rmsSaveURL(slot: slot))
+        try? fm.copyItem(at: src, to: rmsSaveURL(slot: slot))
     }
 
     // MARK: the runtime menu's choices (cfg/<slug>.cfg, as the web launcher reads them)
@@ -158,12 +165,15 @@ final class Launcher {
     func deleteSaves(slug: String) {
         let fm = FileManager.default
         Settings.deleteGame(slug)
-        for p in ["rms/\(slug)", "save/\(slug).state", "save/\(slug).rms", "cfg/\(slug).cfg"] {
-            try? fm.removeItem(at: root.appendingPathComponent(p))
+        var paths = ["rms/\(slug)", "cfg/\(slug).cfg"]
+        for n in 0...Launcher.slotCount {
+            let name = n == 0 ? slug : "\(slug).\(n)"
+            paths += ["save/\(name).state", "save/\(name).rms"]
         }
+        for p in paths { try? fm.removeItem(at: root.appendingPathComponent(p)) }
     }
 
-    func start(game: Game, screenPixels: CGSize, restore: Bool = false) throws {
+    func start(game: Game, screenPixels: CGSize, restore: Bool = false, slot: Int = 0) throws {
         let fm = FileManager.default
         try installRuntimeFiles()
         let slug = game.slug
@@ -172,10 +182,10 @@ final class Launcher {
 
         currentSlug = slug
         if restore {
-            guard hasState else { throw NSError(domain: "j2me", code: 4, userInfo: [NSLocalizedDescriptionKey: "no saved state"]) }
+            guard hasState(slot: slot) else { throw NSError(domain: "j2me", code: 4, userInfo: [NSLocalizedDescriptionKey: "no saved state"]) }
             let rms = root.appendingPathComponent("rms/\(slug)")
             try? fm.removeItem(at: rms)
-            if fm.fileExists(atPath: rmsSaveURL.path) { try? fm.copyItem(at: rmsSaveURL, to: rms) }
+            if fm.fileExists(atPath: rmsSaveURL(slot: slot).path) { try? fm.copyItem(at: rmsSaveURL(slot: slot), to: rms) }
         }
         for d in ["game", "rms/\(slug)", "cfg", "tmp", "save"] {
             try fm.createDirectory(at: root.appendingPathComponent(d), withIntermediateDirectories: true)
@@ -232,7 +242,7 @@ final class Launcher {
         for (k, v) in ProcessInfo.processInfo.environment where k.hasPrefix("PHONEME_") { env[k] = v }
         let env2 = env.map { "\($0.key)=\($0.value)" }.sorted()
         let a = makeArray(args), e = makeArray(env2)
-        let statePath: UnsafeMutablePointer<CChar>? = restore ? strdup(stateURL.path) : nil
+        let statePath: UnsafeMutablePointer<CChar>? = restore ? strdup(stateURL(slot: slot).path) : nil
         if host_start(a, e, statePath) != 0 {
             throw NSError(domain: "j2me", code: 3, userInfo: [NSLocalizedDescriptionKey: "cannot start the VM thread"])
         }

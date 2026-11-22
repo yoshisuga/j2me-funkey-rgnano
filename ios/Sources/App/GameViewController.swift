@@ -41,11 +41,11 @@ final class GameViewController: UIViewController {
     /// "Save state when leaving the app": a state is written before iOS suspends the app.
     @objc private func appDidEnterBackground() {
         guard Settings.global("autoSave") == "1", started, host_running() != 0 else { return }
-        let path = Launcher.shared.stateURL.path
+        let path = Launcher.shared.stateURL(slot: 0).path
         var task = UIBackgroundTaskIdentifier.invalid
         task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
         DispatchQueue.global().async {
-            if host_save_state(path) == 0 { Launcher.shared.saveRecordStores() }
+            if host_save_state(path) == 0 { Launcher.shared.saveRecordStores(slot: 0) }
             UIApplication.shared.endBackgroundTask(task)
         }
     }
@@ -94,11 +94,22 @@ final class GameViewController: UIViewController {
             UIAction(title: "Edit Controls", image: UIImage(systemName: "hand.draw")) { [weak self] _ in self?.pad.setEditing(true) },
             UIAction(title: "Runtime Menu", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in self?.runtimeMenu() },
             UIAction(title: "Game Settings", image: UIImage(systemName: "gearshape")) { [weak self] _ in self?.gameSettings() },
-            UIAction(title: "Save State", image: UIImage(systemName: "square.and.arrow.down")) { [weak self] _ in self?.saveState() },
-            UIDeferredMenuElement.uncached { done in
-                let ok = Launcher.shared.hasState
-                done([UIAction(title: "Load State", image: UIImage(systemName: "square.and.arrow.up"),
-                               attributes: ok ? [] : .disabled) { [weak self] _ in self?.loadState() }])
+            UIDeferredMenuElement.uncached { [weak self] done in
+                let L = Launcher.shared
+                let df = DateFormatter(); df.dateStyle = .medium; df.timeStyle = .short
+                func title(_ n: Int) -> String {
+                    let name = n == 0 ? "Autosave" : "Slot \(n)"
+                    return name + " · " + (L.stateDate(slot: n).map { df.string(from: $0) } ?? "empty")
+                }
+                let save = UIMenu(title: "Save State", image: UIImage(systemName: "square.and.arrow.down"),
+                                  children: (1...Launcher.slotCount).map { n in
+                    UIAction(title: title(n), state: L.hasState(slot: n) ? .on : .off) { _ in self?.saveState(slot: n) }
+                })
+                let load = UIMenu(title: "Load State", image: UIImage(systemName: "square.and.arrow.up"),
+                                  children: (0...Launcher.slotCount).map { n in
+                    UIAction(title: title(n), attributes: L.hasState(slot: n) ? [] : .disabled) { _ in self?.loadState(slot: n) }
+                })
+                done([save, load])
             },
             UIAction(title: "Close Game", image: UIImage(systemName: "xmark.circle"), attributes: .destructive) { [weak self] _ in
                 self?.confirmClose()
@@ -138,11 +149,11 @@ final class GameViewController: UIViewController {
         let a = UIAlertController(title: "Close \(game.name)?", message: "Progress since the last saved state is lost.", preferredStyle: .alert)
         a.addAction(UIAlertAction(title: "Save State & Close", style: .default) { [weak self] _ in
             guard let self = self else { return }
-            let path = Launcher.shared.stateURL.path
+            let path = Launcher.shared.stateURL(slot: 0).path
             DispatchQueue.global().async {
                 let r = host_save_state(path)
                 DispatchQueue.main.async {
-                    if r == 0 { Launcher.shared.saveRecordStores() }
+                    if r == 0 { Launcher.shared.saveRecordStores(slot: 0) }
                     self.quit()
                 }
             }
@@ -277,20 +288,20 @@ final class GameViewController: UIViewController {
         UIView.animate(withDuration: 0.4, delay: 1.5, options: []) { self.toast.alpha = 0 }
     }
 
-    private func saveState() {
-        let path = Launcher.shared.stateURL.path
+    private func saveState(slot: Int) {
+        let path = Launcher.shared.stateURL(slot: slot).path
         say("Saving…")
         DispatchQueue.global().async {
             let r = host_save_state(path)
             DispatchQueue.main.async {
-                if r == 0 { Launcher.shared.saveRecordStores(); self.say("State saved") }
+                if r == 0 { Launcher.shared.saveRecordStores(slot: slot); self.say("Saved to slot \(slot)") }
                 else { self.say(r == -2 ? "Game busy, try again" : "Save failed") }
             }
         }
     }
 
-    private func loadState() {
-        guard Launcher.shared.hasState else { say("No saved state"); return }
+    private func loadState(slot: Int) {
+        guard Launcher.shared.hasState(slot: slot) else { say("No saved state"); return }
         say("Loading…")
         link?.invalidate(); link = nil
         let scale = view.window?.screen.scale ?? UIScreen.main.scale
@@ -298,7 +309,7 @@ final class GameViewController: UIViewController {
         DispatchQueue.global().async {
             _ = host_stop()
             DispatchQueue.main.async {
-                do { try Launcher.shared.start(game: self.game, screenPixels: px, restore: true) }
+                do { try Launcher.shared.start(game: self.game, screenPixels: px, restore: true, slot: slot) }
                 catch { self.say("Load failed: \(error.localizedDescription)"); return }
                 self.lastGen = 0
                 self.link = CADisplayLink(target: self, selector: #selector(self.tick))
