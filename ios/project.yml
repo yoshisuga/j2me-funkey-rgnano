@@ -27,6 +27,8 @@ targets:
       - path: Demo/StarCatcher.jad
       - path: Demo/VoidWave.jar
       - path: Demo/VoidWave.jad
+      - path: Demo/RainbowHop.jar
+      - path: Demo/RainbowHop.jad
       - path: Resources/Assets.xcassets
     settings:
       base:

@@ -1,4 +1,4 @@
-# Star Catcher (demo game)
+# Demo games (Star Catcher, Void Wave, Rainbow Hop)
 
 A small original MIDP 2.0 game bundled with the app so there is something to play
 (and review) without importing a jar. Source: `src/StarCatcher.java`.

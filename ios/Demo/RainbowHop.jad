@@ -1,0 +1,8 @@
+MIDlet-1: Rainbow Hop, , RainbowHop
+MIDlet-Name: Rainbow Hop
+MIDlet-Vendor: GenJ2
+MIDlet-Version: 1.0.0
+MIDlet-Jar-URL: RainbowHop.jar
+MIDlet-Jar-Size: 8674
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
