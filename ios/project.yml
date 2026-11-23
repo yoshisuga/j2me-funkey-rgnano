@@ -29,6 +29,8 @@ targets:
       - path: Demo/VoidWave.jad
       - path: Demo/RainbowHop.jar
       - path: Demo/RainbowHop.jad
+      - path: Demo/GemSwap.jar
+      - path: Demo/GemSwap.jad
       - path: Resources/Assets.xcassets
     settings:
       base:
