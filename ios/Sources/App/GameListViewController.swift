@@ -4,6 +4,7 @@ import UIKit
 /// The games screen: a SwiftUI grid or list of the games in the store, with UIKit bars around it.
 final class GameListViewController: UIViewController, UIDocumentPickerDelegate {
     private let store = GameStore()
+    private var titleHost: UIViewController?
     /// Files that opened the app before this screen was visible.
     var pendingURLs: [URL] = []
 
@@ -28,6 +29,16 @@ final class GameListViewController: UIViewController, UIDocumentPickerDelegate {
             host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
         host.didMove(toParent: self)
+        // the title is the icon's dot-matrix "GENJ2", drawn by SwiftUI
+        let titleHost = UIHostingController(rootView: PixelTitle())
+        titleHost.view.backgroundColor = .clear
+        titleHost.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            titleHost.view.widthAnchor.constraint(equalToConstant: PixelTitle.size.width),
+            titleHost.view.heightAnchor.constraint(equalToConstant: PixelTitle.size.height),
+        ])
+        self.titleHost = titleHost             // kept alive here; not a child (the navigation bar owns the view)
+        navigationItem.titleView = titleHost.view
         navigationItem.leftBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "gearshape"), primaryAction: UIAction { [weak self] _ in
             self?.presentSettings(slug: nil, name: nil, isIAppli: false)
         })
