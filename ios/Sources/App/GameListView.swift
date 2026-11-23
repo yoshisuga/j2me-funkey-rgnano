@@ -103,27 +103,20 @@ struct GameListView: View {
                     .padding(24).allowsHitTesting(false)
             }
         }
-        .safeAreaInset(edge: .trailing, alignment: .center, spacing: 0) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             if layout != "list" { sizeSlider }
         }
     }
 
-    /// A vertical slider in a strip along the right edge: up for bigger tiles, down for smaller.
     private var sizeSlider: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "square.grid.2x2.fill")
+        HStack(spacing: 12) {
+            Image(systemName: "square.grid.3x3.fill").foregroundColor(.secondary)
             Slider(value: $tile, in: GameListView.tileRange)
-                .frame(width: 200)
-                .rotationEffect(.degrees(-90))      // the left end (smallest) is now at the bottom
-                .frame(width: 30, height: 200)
-            Image(systemName: "square.grid.3x3.fill")
+            Image(systemName: "square.grid.2x2.fill").foregroundColor(.secondary)
         }
         .imageScale(.small)
-        .foregroundColor(.secondary)
-        .padding(.vertical, 14).padding(.horizontal, 6)
-        .background(.ultraThinMaterial, in: Capsule())
-        .padding(.trailing, 6)
-        .frame(maxHeight: .infinity, alignment: .center)
+        .padding(.horizontal, 20).padding(.vertical, 10)
+        .background(.ultraThinMaterial)
     }
 
     @ViewBuilder private func menu(_ g: Game) -> some View {
