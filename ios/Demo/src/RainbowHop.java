@@ -34,7 +34,7 @@ public class RainbowHop extends MIDlet implements CommandListener {
         private static final int MP = 12, MS = 6, MN = 3, MQ = 24, PW = 44, TR = 14, STAGE = 800;
 
         // islands: type 0 grass, 1 moving, 2 crumbling, 3 spring
-        private final int[] plx = new int[MP], ply = new int[MP], plt = new int[MP], pld = new int[MP], plc = new int[MP];
+        private final int[] plb = new int[MP], plx = new int[MP], ply = new int[MP], plt = new int[MP], pld = new int[MP], plc = new int[MP];
         private final boolean[] pla = new boolean[MP];
         // stars
         private final int[] sx = new int[MS], sy = new int[MS];
@@ -47,7 +47,7 @@ public class RainbowHop extends MIDlet implements CommandListener {
         // rainbow trail
         private final int[] tx = new int[TR], ty = new int[TR];
 
-        private int px, py, vy, move, face, tick, topY, scroll, bonus, best, topColor, botColor;
+        private int lastCx, px, py, vy, move, face, tick, topY, scroll, bonus, best, topColor, botColor;
         private boolean night, over, running, title = true;
         private long seed = 4242;
         private Font big, small;
@@ -79,7 +79,7 @@ public class RainbowHop extends MIDlet implements CommandListener {
             for (int i = 0; i < MQ; i++) ql[i] = 0;
             scroll = 0; bonus = 0; over = false; move = 0; face = 1;
             // a wide first island under the player
-            plx[0] = w / 2 - PW / 2; ply[0] = h - 24; plt[0] = 0; pld[0] = 0; plc[0] = 0; pla[0] = true;
+            plx[0] = w / 2 - PW / 2; plb[0] = plx[0]; lastCx = w / 2; ply[0] = h - 24; plt[0] = 0; pld[0] = 0; plc[0] = 0; pla[0] = true;
             topY = ply[0];
             px = w / 2; py = ply[0]; vy = -13;
             for (int i = 0; i < TR; i++) { tx[i] = px; ty[i] = py - 8; }
@@ -91,15 +91,19 @@ public class RainbowHop extends MIDlet implements CommandListener {
             for (int i = 0; i < MP; i++) if (!pla[i]) { slot = i; break; }
             if (slot < 0) { topY = -100; return; }
             int level = scroll / 100;
-            int gap = 38 + rnd(20) + (level / 6 > 18 ? 18 : level / 6);
+            int gap = 38 + rnd(20) + (level / 6 > 14 ? 14 : level / 6);
             int y = topY - gap;
-            int x = rnd(w - PW);
+            // a jump carries about 100 px sideways: the next island is never further than 60 px from the last one
+            int x = lastCx - PW / 2 + rnd(121) - 60;
+            if (x < 0) x = 0;
+            if (x > w - PW) x = w - PW;
+            lastCx = x + PW / 2;
             int r = rnd(100);
             int t = 0;
             if (level >= 2 && r < 18) t = 1;
             else if (level >= 4 && r < 30) t = 2;
             else if (level >= 1 && r >= 90) t = 3;
-            plx[slot] = x; ply[slot] = y; plt[slot] = t; plc[slot] = 0; pla[slot] = true;
+            plx[slot] = x; plb[slot] = x; ply[slot] = y; plt[slot] = t; plc[slot] = 0; pla[slot] = true;
             pld[slot] = rnd(2) == 0 ? -1 : 1;
             topY = y;
             if (rnd(4) == 0) {                         // a star over the island
@@ -166,8 +170,10 @@ public class RainbowHop extends MIDlet implements CommandListener {
                 if (!pla[i]) continue;
                 if (plt[i] == 1) {
                     plx[i] += pld[i] * 2;
-                    if (plx[i] < 0) { plx[i] = 0; pld[i] = 1; }
-                    if (plx[i] > w - PW) { plx[i] = w - PW; pld[i] = -1; }
+                    // moving islands stay within 40 px of where they were placed
+                    int lo = plb[i] - 40 < 0 ? 0 : plb[i] - 40, hi = plb[i] + 40 > w - PW ? w - PW : plb[i] + 40;
+                    if (plx[i] < lo) { plx[i] = lo; pld[i] = 1; }
+                    if (plx[i] > hi) { plx[i] = hi; pld[i] = -1; }
                 }
                 if (plc[i] > 0) {
                     plc[i]--;
