@@ -61,7 +61,7 @@ targets:
         CFBundleDocumentTypes:
           - CFBundleTypeName: Java game file
             LSHandlerRank: Default
-            LSItemContentTypes: [com.sun.java-archive, com.ievo.genj2.jar, com.ievo.genj2.jam, com.ievo.genj2.sp]
+            LSItemContentTypes: [public.zip-archive, com.sun.java-archive, com.ievo.genj2.jar, com.ievo.genj2.jam, com.ievo.genj2.sp]
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: com.ievo.genj2.jar
             UTTypeDescription: Java archive

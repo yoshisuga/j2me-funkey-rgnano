@@ -18,7 +18,7 @@ enum Importer {
             return m
         }
         private var text: String {
-            if games == 0 { return "No .jar files found. Pick a .jar (an i-appli: with its .jam and .sp) or a folder holding them." }
+            if games == 0 { return "No .jar files found. Pick a .jar (an i-appli: with its .jam and .sp), a .zip or a folder holding them." }
             return "Imported \(games) game\(games == 1 ? "" : "s")."
         }
     }
@@ -29,7 +29,11 @@ enum Importer {
         let fm = FileManager.default
         var items: [Item] = []
         var opened: [URL] = []
-        defer { opened.forEach { $0.stopAccessingSecurityScopedResource() } }
+        let scratch = fm.temporaryDirectory.appendingPathComponent("import-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            opened.forEach { $0.stopAccessingSecurityScopedResource() }
+            try? fm.removeItem(at: scratch)
+        }
 
         for url in urls {
             if url.startAccessingSecurityScopedResource() { opened.append(url) }
@@ -39,6 +43,9 @@ enum Importer {
                 while let f = e?.nextObject() as? URL {
                     if extensions.contains(f.pathExtension.lowercased()) { items.append(Item(url: f, fromFolder: true)) }
                 }
+            } else if url.pathExtension.lowercased() == "zip" {
+                // a zip holding the game: unpacked to a folder of its own (named like the zip), then handled as a folder
+                for f in unzip(url, into: scratch) { items.append(Item(url: f, fromFolder: true)) }
             } else if extensions.contains(url.pathExtension.lowercased()) {
                 items.append(Item(url: url, fromFolder: false))
             }
@@ -82,6 +89,24 @@ enum Importer {
             }
         }
         return result
+    }
+
+    /// Writes the game files (.jar .jam .sp) of a zip below `scratch/<zip name>/`, keeping their folders.
+    private static func unzip(_ zip: URL, into scratch: URL) -> [URL] {
+        guard let data = try? Data(contentsOf: zip, options: .mappedIfSafe) else { return [] }
+        let fm = FileManager.default
+        let root = scratch.appendingPathComponent(clean(zip.deletingPathExtension().lastPathComponent), isDirectory: true)
+        var out: [URL] = []
+        for name in JarInfo.entryNames(data) where !name.hasSuffix("/") {
+            let parts = name.split(separator: "/").map(String.init)
+            guard !parts.contains(".."), !parts.contains("__MACOSX"), !(parts.last ?? "").hasPrefix("."),
+                  extensions.contains((name as NSString).pathExtension.lowercased()),
+                  let bytes = JarInfo.readEntry(data, named: name) else { continue }
+            let dest = parts.reduce(root) { $0.appendingPathComponent($1) }
+            try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+            if (try? bytes.write(to: dest)) != nil { out.append(dest) }
+        }
+        return out
     }
 
     private static func copy(_ src: URL, to dst: URL, _ r: inout Result) {
