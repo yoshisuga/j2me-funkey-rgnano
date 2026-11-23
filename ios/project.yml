@@ -22,7 +22,6 @@ targets:
         compilerFlags: ["-O1", "-w"]
       - path: Resources/midp
         type: folder
-      - path: Resources/MotherLoad.jar
       - path: Demo/StarCatcher.jar
       - path: Demo/StarCatcher.jad
       - path: Demo/VoidWave.jar

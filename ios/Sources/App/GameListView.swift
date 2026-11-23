@@ -38,7 +38,7 @@ final class GameStore: ObservableObject {
 
     private static func scan(_ dir: URL) -> [Game] {
         var list: [Game] = []
-        for name in ["MotherLoad", "StarCatcher", "VoidWave", "RainbowHop", "GemSwap"] {   // demo games shipped in the app
+        for name in ["StarCatcher", "VoidWave", "RainbowHop", "GemSwap"] {   // demo games shipped in the app
             if let demo = Bundle.main.url(forResource: name, withExtension: "jar"), let g = Game.load(jar: demo) { list.append(g) }
         }
         // jars in Documents/java, also one folder deep (a game with its .jam and .sp in a folder)
@@ -179,7 +179,9 @@ struct GameListView: View {
             }
             .swipeActions(edge: .trailing) {
                 if !g.isBundled {
-                    Button(role: .destructive) { delete(g) } label: { Label("Delete", systemImage: "trash") }
+                    // not role: .destructive: that makes the list drop the row at once, before the
+                    // confirmation (a mismatch with the data crashes UICollectionView)
+                    Button { delete(g) } label: { Label("Delete", systemImage: "trash") }.tint(.red)
                 }
             }
             .contextMenu { menu(g) }

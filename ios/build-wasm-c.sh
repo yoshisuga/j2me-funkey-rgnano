@@ -11,7 +11,7 @@ if [ -z "${WASM_SRC:-}" ]; then
     WASM_SRC=$GEN/web
     mkdir -p "$WASM_SRC"
     git -C "$HERE/.." fetch -q origin gh-pages
-    for f in runMidlet.wasm midp-files.js midp-files.data MotherLoad.jar; do
+    for f in runMidlet.wasm midp-files.js midp-files.data; do
         git -C "$HERE/.." show "origin/gh-pages:$f" > "$WASM_SRC/$f"
     done
 fi
@@ -32,7 +32,6 @@ for f in meta['files']:
 print(len(meta['files']), 'runtime files')
 PY
 python3 -I "$HERE/patch-generated.py" "$GEN"
-[ -f "$WASM_SRC/MotherLoad.jar" ] && cp "$WASM_SRC/MotherLoad.jar" "$HERE/Resources/"
 # wasm-rt runtime, copied so the Xcode project is self-contained
 WABT=$(dirname "$(dirname "$(command -v wasm2c)")")
 cp -f "$WABT"/include/wasm-rt.h "$WABT"/include/wasm2c/*.h "$GEN/" 2>/dev/null || true
