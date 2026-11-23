@@ -366,7 +366,7 @@ public class RainbowHop extends MIDlet implements CommandListener {
                 }
                 g.setColor(0xF5F0D0);
                 g.fillArc(w - 52, 22, 30, 30, 0, 360);
-                g.setColor(skyAt(37, h));
+                g.setColor(skyAt(32, h));
                 g.fillArc(w - 44, 18, 28, 28, 0, 360);
             } else {
                 g.setColor(0xFFF2A8);
