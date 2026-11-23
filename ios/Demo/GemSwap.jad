@@ -1,8 +1,8 @@
-MIDlet-1: Gem Swap, , GemSwap
+MIDlet-1: Gem Swap, /icon.png, GemSwap
 MIDlet-Name: Gem Swap
 MIDlet-Vendor: GenJ2
 MIDlet-Version: 1.0.0
 MIDlet-Jar-URL: GemSwap.jar
-MIDlet-Jar-Size: 8712
+MIDlet-Jar-Size: 9424
 MicroEdition-Configuration: CLDC-1.1
 MicroEdition-Profile: MIDP-2.0
