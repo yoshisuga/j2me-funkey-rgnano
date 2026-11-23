@@ -82,6 +82,12 @@ private struct PressStyle: ButtonStyle {
     }
 }
 
+/// Links shown in the app.
+enum AppLinks {
+    /// The Discord invite. Set it when there is one: until then the line below the games is plain text.
+    static let discord: URL? = nil
+}
+
 struct GameListView: View {
     @ObservedObject var store: GameStore
     @AppStorage("lib.layout") private var layout = "grid"
@@ -119,6 +125,23 @@ struct GameListView: View {
         .background(.ultraThinMaterial)
     }
 
+    /// "Questions? Ask on Discord!" at the end of the games (a link once AppLinks.discord is set).
+    @ViewBuilder private var discordFooter: some View {
+        let pill = HStack(spacing: 8) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+            Text("Questions? Ask on Discord!")
+        }
+        .font(.footnote.weight(.semibold))
+        .foregroundColor(.white)
+        .padding(.horizontal, 16).padding(.vertical, 9)
+        .background(Capsule().fill(Color(red: 0.345, green: 0.396, blue: 0.949)))     // Discord's blurple
+        if let url = AppLinks.discord {
+            Link(destination: url) { pill }
+        } else {
+            pill
+        }
+    }
+
     @ViewBuilder private func menu(_ g: Game) -> some View {
         Button { settings(g) } label: { Label("Game Settings", systemImage: "gearshape") }
         if !g.isBundled {
@@ -147,7 +170,8 @@ struct GameListView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 12).padding(.bottom, 16)
+                .padding(.top, 12)
+                discordFooter.frame(maxWidth: .infinity).padding(.top, 20).padding(.bottom, 28)
             }
             .refreshable { await store.reloadAsync() }
         }
@@ -177,7 +201,8 @@ struct GameListView: View {
     // MARK: list
 
     private var list: some View {
-        List(store.games) { g in
+        List {
+            ForEach(store.games) { g in
             Button { open(g) } label: {
                 HStack(spacing: 14) {
                     GameIcon(game: g).frame(width: 44, height: 44)
@@ -198,6 +223,11 @@ struct GameListView: View {
                 }
             }
             .contextMenu { menu(g) }
+            }
+            discordFooter
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
         .listStyle(.insetGrouped)
         .refreshable { await store.reloadAsync() }
