@@ -57,12 +57,13 @@ final class GameStore: ObservableObject {
 /// A game's icon, read off the main thread; a controller symbol until it is there (or if it has none).
 private struct GameIcon: View {
     let game: Game
+    var size: CGFloat = 44          // how big it is drawn: pixel art stays sharp when enlarged, smooth when reduced
     @State private var image: UIImage?
 
     var body: some View {
         Group {
             if let image = image {
-                Image(uiImage: image).resizable().interpolation(.none).scaledToFit()
+                Image(uiImage: image).resizable().interpolation(size < image.size.width ? .high : .none).scaledToFit()
             } else {
                 Image(systemName: "gamecontroller.fill").resizable().scaledToFit()
                     .foregroundColor(Color(.tertiaryLabel)).padding(6)
@@ -127,37 +128,49 @@ struct GameListView: View {
 
     // MARK: grid
 
+    private let gridSpacing: CGFloat = 14
+
     private var grid: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: CGFloat(tile)), spacing: 14, alignment: .top)], spacing: 18) {
-                ForEach(store.games) { g in
-                    Button { open(g) } label: { tileView(g) }
-                        .buttonStyle(PressStyle())
-                        .contextMenu { menu(g) }
+        GeometryReader { geo in
+            // every tile is exactly `tile` wide (so the icons follow the slider continuously);
+            // the number of columns is what fits, and the rows are centred
+            let avail = max(geo.size.width - 32, 60)
+            let t = min(CGFloat(tile), avail)
+            let n = max(1, Int((avail + gridSpacing) / (t + gridSpacing)))
+            ScrollView {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(t), spacing: gridSpacing, alignment: .top), count: n),
+                          spacing: 18) {
+                    ForEach(store.games) { g in
+                        Button { open(g) } label: { tileView(g, t) }
+                            .buttonStyle(PressStyle())
+                            .contextMenu { menu(g) }
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 12).padding(.bottom, 16)
             }
-            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 16)
+            .refreshable { await store.reloadAsync() }
         }
-        .refreshable { await store.reloadAsync() }
     }
 
-    private func tileView(_ g: Game) -> some View {
+    private func tileView(_ g: Game, _ t: CGFloat) -> some View {
         VStack(spacing: 6) {
             ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: CGFloat(tile) * 0.17, style: .continuous)
+                RoundedRectangle(cornerRadius: t * 0.17, style: .continuous)
                     .fill(Color(.secondarySystemGroupedBackground))
-                    .overlay(RoundedRectangle(cornerRadius: CGFloat(tile) * 0.17, style: .continuous)
+                    .overlay(RoundedRectangle(cornerRadius: t * 0.17, style: .continuous)
                         .stroke(Color(.separator), lineWidth: 1))
-                GameIcon(game: g).padding(CGFloat(tile) * 0.17)
+                GameIcon(game: g, size: t * 0.66).padding(t * 0.17)
                 if g.isIAppli {
-                    Text("i-appli").font(.system(size: max(8, CGFloat(tile) * 0.075), weight: .bold))
+                    Text("i-appli").font(.system(size: max(8, t * 0.075), weight: .bold))
                         .foregroundColor(.white).padding(.horizontal, 4).padding(.vertical, 1)
                         .background(Color.red.opacity(0.85)).cornerRadius(4).padding(6)
                 }
             }
-            .aspectRatio(1, contentMode: .fit)
-            Text(g.name).font(.system(size: max(11, min(16, CGFloat(tile) * 0.11)), weight: .medium))
+            .frame(width: t, height: t)
+            Text(g.name).font(.system(size: max(11, min(16, t * 0.11)), weight: .medium))
                 .foregroundColor(.primary).multilineTextAlignment(.center).lineLimit(2)
+                .frame(width: t)
         }
     }
 
