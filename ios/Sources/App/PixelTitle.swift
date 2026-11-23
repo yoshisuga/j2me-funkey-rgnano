@@ -13,8 +13,8 @@ struct PixelTitle: View {
     private static let text = Array("GENJ2")
     private static let cols = text.count * 6 - 1 + 6        // the letters and three blank pixels either side
     private static let rows = 7 + 4
-    private static let cell: CGFloat = 2.8
-    private static let bezel: CGFloat = 3
+    private static let cell: CGFloat = 3.3
+    private static let bezel: CGFloat = 3.5
 
     static var size: CGSize {
         CGSize(width: CGFloat(cols) * cell + 2 * bezel, height: CGFloat(rows) * cell + 2 * bezel)
