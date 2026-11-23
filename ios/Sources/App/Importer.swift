@@ -8,7 +8,16 @@ enum Importer {
     struct Result {
         var games = 0
         var files = 0
+        var incomplete: [String] = []     // jars that came across but cannot start (an i-appli without its .jam)
         var message: String {
+            var m = games == 0 && !incomplete.isEmpty ? "" : text
+            if !incomplete.isEmpty {
+                m += (m.isEmpty ? "" : "\n\n") + incomplete.joined(separator: ", ") + (incomplete.count == 1 ? " is" : " are")
+                    + " not listed: it needs its .jam file (an i-appli). Import the .jam (and .sp) together with the .jar, or as a folder."
+            }
+            return m
+        }
+        private var text: String {
             if games == 0 { return "No .jar files found. Pick a .jar (an i-appli: with its .jam and .sp) or a folder holding them." }
             return "Imported \(games) game\(games == 1 ? "" : "s")."
         }
@@ -60,7 +69,14 @@ enum Importer {
                     for it in group where it.url.deletingPathExtension().lastPathComponent == base {
                         copy(it.url, to: dir.appendingPathComponent(it.url.lastPathComponent), &result)
                     }
-                    Library.markAdded(slug: Game.slug(forJar: dir.appendingPathComponent(jar.url.lastPathComponent)))
+                    let dest = dir.appendingPathComponent(jar.url.lastPathComponent)
+                    if Game.load(jar: dest) == nil {
+                        // cannot start: take the copy back out instead of leaving an invisible file
+                        try? fm.removeItem(at: dest)
+                        result.incomplete.append(jar.url.deletingPathExtension().lastPathComponent)
+                        continue
+                    }
+                    Library.markAdded(slug: Game.slug(forJar: dest))
                     result.games += 1
                 }
             }

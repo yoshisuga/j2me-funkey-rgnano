@@ -154,7 +154,7 @@ final class GameListViewController: UIViewController, UIDocumentPickerDelegate {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.store.reload()          // the new games appear behind the message
-                let a = UIAlertController(title: result.games > 0 ? "Imported" : "Nothing imported", message: result.message, preferredStyle: .alert)
+                let a = UIAlertController(title: result.games > 0 ? "Imported" : (result.incomplete.isEmpty ? "Nothing imported" : "Missing .jam"), message: result.message, preferredStyle: .alert)
                 a.addAction(UIAlertAction(title: "OK", style: .default))
                 (self.presentedViewController ?? self).present(a, animated: true)
             }
