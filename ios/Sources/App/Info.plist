@@ -12,9 +12,10 @@
 			<key>CFBundleTypeName</key>
 			<string>Java game file</string>
 			<key>LSHandlerRank</key>
-			<string>Alternate</string>
+			<string>Default</string>
 			<key>LSItemContentTypes</key>
 			<array>
+				<string>com.sun.java-archive</string>
 				<string>com.ievo.genj2.jar</string>
 				<string>com.ievo.genj2.jam</string>
 				<string>com.ievo.genj2.sp</string>

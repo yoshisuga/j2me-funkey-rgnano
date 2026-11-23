@@ -60,8 +60,8 @@ targets:
         UILaunchScreen: {}
         CFBundleDocumentTypes:
           - CFBundleTypeName: Java game file
-            LSHandlerRank: Alternate
-            LSItemContentTypes: [com.ievo.genj2.jar, com.ievo.genj2.jam, com.ievo.genj2.sp]
+            LSHandlerRank: Default
+            LSItemContentTypes: [com.sun.java-archive, com.ievo.genj2.jar, com.ievo.genj2.jam, com.ievo.genj2.sp]
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: com.ievo.genj2.jar
             UTTypeDescription: Java archive

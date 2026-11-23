@@ -32,6 +32,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let ws = scene as? UIWindowScene else { return }
         let w = UIWindow(windowScene: ws)
         list = GameListViewController()
+        // a file that launched the app (opened from Files / AirDrop while it was not running)
+        list?.pendingURLs = options.urlContexts.map { $0.url }
         w.rootViewController = UINavigationController(rootViewController: list!)
         w.makeKeyAndVisible()
         window = w
